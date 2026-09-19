@@ -78,8 +78,8 @@ func build_shell() -> void:
 	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_margin.add_theme_constant_override("margin_left", 39)
 	page_margin.add_theme_constant_override("margin_right", 39)
-	page_margin.add_theme_constant_override("margin_top", 31)
-	page_margin.add_theme_constant_override("margin_bottom", 52)
+	page_margin.add_theme_constant_override("margin_top", 20)
+	page_margin.add_theme_constant_override("margin_bottom", 20)
 	scroll.add_child(page_margin)
 	page_host = VBoxContainer.new()
 	page_host.name = "PageHost"
@@ -140,26 +140,27 @@ func build_sidebar(sidebar: PanelContainer) -> void:
 	var network := make_label("●  NETWORK ONLINE                         0.9.4", 8, C_MUTED)
 	network.add_theme_stylebox_override("normal", panel_style(Color("#0B151C"), C_LINE))
 	box.add_child(network)
-	box.add_child(make_label("", 12, C_MUTED))
+	box.add_child(make_label("", 6, C_MUTED))
 
 	var groups := [
-		["OPERATIONS", [["overview", "▦", "Overview"], ["matchmaking", "◎", "Matchmaking"], ["loadout", "▣", "Inventory"], ["case-lab", "◇", "Case Lab"]]],
-		["INTEL", [["progression", "⌁", "Progression"], ["training", "⊙", "Training"], ["field-hud", "⊕", "Field HUD"], ["patch-notes", "▤", "Patch notes"]]],
+		["OPERATIONS", [["overview", "▦", "Overview"], ["matchmaking", "◎", "Play"], ["loadout", "▣", "Inventory"], ["case-lab", "◇", "Cases"], ["store", "▤", "Store"]]],
+		["SQUAD", [["profile", "◉", "Profile"], ["friends", "＋", "Friends"], ["training", "⊙", "Training"]]],
+		["INTEL", [["progression", "⌁", "Progression"], ["field-hud", "⊕", "Field HUD"], ["patch-notes", "▤", "Patch notes"]]],
 	]
 	for group in groups:
 		box.add_child(make_label(group[0], 8, C_DIM))
 		for entry in group[1]:
 			var nav := nav_button(entry[0], entry[1], entry[2])
 			box.add_child(nav)
-			box.add_child(make_label("", 2, C_MUTED))
-		box.add_child(make_label("", 10, C_MUTED))
+			box.add_child(make_label("", 1, C_MUTED))
+		box.add_child(make_label("", 5, C_MUTED))
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(spacer)
 
 	var season := PanelContainer.new()
-	season.custom_minimum_size = Vector2(0, 130)
+	season.custom_minimum_size = Vector2(0, 100)
 	season.add_theme_stylebox_override("panel", panel_style(Color("#16343A"), Color("#315D60")))
 	var season_box := VBoxContainer.new()
 	season_box.add_theme_constant_override("separation", 7)
@@ -177,12 +178,11 @@ func build_sidebar(sidebar: PanelContainer) -> void:
 	box.add_child(season)
 
 	var settings := nav_button("settings", "⚙", "Settings")
-	settings.pressed.connect(open_settings)
 	box.add_child(settings)
 	var profile := Button.new()
 	profile.text = "●  niko//zero\n    ONLINE"
 	profile.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	profile.custom_minimum_size = Vector2(0, 45)
+	profile.custom_minimum_size = Vector2(0, 38)
 	profile.add_theme_font_size_override("font_size", 11)
 	profile.add_theme_color_override("font_color", C_TEXT)
 	profile.add_theme_stylebox_override("normal", panel_style(Color("#0D171E"), C_LINE))
@@ -223,13 +223,22 @@ func nav_button(id: String, icon: String, label: String) -> Button:
 	var b := Button.new()
 	b.text = icon + "   " + label
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(0, 39)
+	b.custom_minimum_size = Vector2(0, 34)
 	b.add_theme_font_size_override("font_size", 11)
 	b.add_theme_color_override("font_color", C_MUTED)
 	b.add_theme_color_override("font_hover_color", C_TEXT)
 	b.add_theme_stylebox_override("normal", panel_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
 	b.add_theme_stylebox_override("hover", panel_style(Color("#112228"), Color("#24434A")))
-	b.pressed.connect(func() -> void: show_page(id))
+	b.pressed.connect(func() -> void:
+		if id == "settings":
+			open_settings()
+		elif id == "store":
+			show_page("case-lab")
+		elif id == "friends":
+			notify("Friends panel opened")
+		else:
+			show_page(id)
+	)
 	nav_buttons[id] = b
 	return b
 
@@ -255,58 +264,70 @@ func show_page(id: String) -> void:
 		"profile": build_profile()
 
 func build_overview() -> void:
-	page_heading("SEASON 03 // RIFT PROTOCOL", "Precision over force.", "Read the room. Break the line. Every round is a system waiting to be solved.")
-	var hero := hero_panel()
-	page_host.add_child(hero)
+	var intro := HBoxContainer.new()
+	intro.custom_minimum_size = Vector2(0, 24)
+	intro.add_child(make_label("COMMAND DECK // LIVE OPERATIONS", 8, C_CYAN))
+	var sync := make_label("SEASON 03     LAST SYNC 14:32:08 UTC", 8, C_DIM)
+	sync.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sync.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	intro.add_child(sync)
+	page_host.add_child(intro)
 
-	var top_grid := HBoxContainer.new()
-	top_grid.add_theme_constant_override("separation", 16)
-	page_host.add_child(top_grid)
-	var queue := make_card("READY WHEN YOU ARE", "Ranked 5v5", 225)
-	queue[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	queue[1].add_child(make_label("Competitive ruleset · first to 13 · overtime enabled", 10, C_MUTED))
-	queue[1].add_child(make_label("◌  RIFT / FALL        ⌁  QUEUE ETA 00:43", 10, C_CYAN))
-	queue[1].add_child(make_label("MAP POOL\nRIFT / FALL + 4 MAPS", 8, C_DIM))
-	var open_queue := ui_button("OPEN MATCHMAKING   →", Callable(func() -> void: show_page("matchmaking")), true)
-	queue[1].add_child(open_queue)
-	top_grid.add_child(queue[0])
-	var rank := make_card("YOUR SIGNAL", "VECTOR IV", 225)
+	page_host.add_child(hero_panel())
+
+	var quick := HBoxContainer.new()
+	quick.add_theme_constant_override("separation", 12)
+	page_host.add_child(quick)
+	var play := make_card("PLAY // RANKED", "Find a match", 166)
+	play[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	play[1].add_child(make_label("5v5 · first to 13 · overtime enabled", 9, C_MUTED))
+	play[1].add_child(make_label("RIFT / FALL     EU NORTH · 32 ms", 9, C_CYAN))
+	play[1].add_child(ui_button("▶  PLAY RANKED", Callable(func() -> void: show_page("matchmaking")), true))
+	quick.add_child(play[0])
+
+	var rank := make_card("YOUR SIGNAL", "VECTOR IV", 166)
 	rank[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rank[1].add_child(make_label("RATING  2,480        +124 THIS WEEK", 10, C_CYAN))
+	rank[1].add_child(make_label("2,480 RP        +124 THIS WEEK", 9, C_CYAN))
 	var progress := ProgressBar.new()
 	progress.value = 62
 	progress.show_percentage = false
-	progress.custom_minimum_size = Vector2(0, 6)
+	progress.custom_minimum_size = Vector2(0, 5)
 	progress.add_theme_stylebox_override("background", panel_style(Color("#24343A"), Color("#24343A")))
 	progress.add_theme_stylebox_override("fill", panel_style(C_CYAN, C_CYAN))
 	rank[1].add_child(progress)
-	rank[1].add_child(make_label("14 WINS     09 LOSSES     1.18 K/D     63% HS", 9, C_MUTED))
-	rank[1].add_child(ui_button("RANK HISTORY   →", Callable(func() -> void: show_page("progression")), false))
-	top_grid.add_child(rank[0])
+	rank[1].add_child(make_label("183 RP TO VECTOR V", 8, C_MUTED))
+	quick.add_child(rank[0])
 
-	page_host.add_child(section_rule("OPERATIONS FEED                         LAST SYNC 14:32:08 UTC"))
-	var feed := HBoxContainer.new()
-	feed.add_theme_constant_override("separation", 16)
-	page_host.add_child(feed)
-	var ops := make_card("FIELD INTEL // 01", "Active operations", 290)
-	ops[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_operation(ops[1], "01", "Controlled demolition", "Win a round after destroying 2 reinforced panels.", "+2,500 XP", C_CYAN, "72%")
-	add_operation(ops[1], "02", "Quiet entry", "Plant the Key without triggering a sound cue.", "+1,200 XP", C_AMBER, "38%")
-	add_operation(ops[1], "03", "Weather the storm", "Complete 3 matches during a live weather event.", "RIFT CASE", C_PURPLE, "0%")
-	feed.add_child(ops[0])
-	var squad := make_card("SQUAD // 05", "Your fireteam", 290)
+	var squad := make_card("FIRETEAM // 4 ONLINE", "Your squad", 166)
 	squad[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for member in [["niko//zero", "SHOTCALLER", "IN MENU"], ["mara.v", "ENTRY", "IN MATCH"], ["k0met", "ANCHOR", "IN MENU"], ["sable_06", "FLEX", "AWAY"]]:
-		add_squad_row(squad[1], member[0], member[1], member[2])
-	squad[1].add_child(ui_button("＋  ADD OPERATOR       3 ONLINE", Callable(func() -> void: notify("Friend list opened")), false))
-	feed.add_child(squad[0])
+	add_squad_row(squad[1], "niko//zero", "SHOTCALLER", "IN MENU")
+	add_squad_row(squad[1], "mara.v", "ENTRY", "IN MATCH")
+	add_squad_row(squad[1], "k0met", "ANCHOR", "IN MENU")
+	quick.add_child(squad[0])
+
+	var feed := HBoxContainer.new()
+	feed.add_theme_constant_override("separation", 12)
+	page_host.add_child(feed)
+	var ops := make_card("FIELD INTEL // 01", "Active operations", 170)
+	ops[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_operation(ops[1], "01", "Controlled demolition", "Destroy 2 reinforced panels.", "+2,500 XP", C_CYAN, "72%")
+	add_operation(ops[1], "02", "Quiet entry", "Plant the Key without a sound cue.", "+1,200 XP", C_AMBER, "38%")
+	feed.add_child(ops[0])
+
+	var season := make_card("SIGNAL // NEXT", "What matters now", 170)
+	season[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	season[1].add_child(make_label("MAP ROTATION", 8, C_DIM))
+	season[1].add_child(make_label("RIFT / FALL  ·  OVERCAST", 10, C_TEXT))
+	season[1].add_child(make_label("NEXT UNLOCK", 8, C_DIM))
+	season[1].add_child(make_label("RIFT // AFTERGLOW CASE  ·  LVL 42", 9, C_PURPLE))
+	feed.add_child(season[0])
 
 func hero_panel() -> PanelContainer:
 	var hero := PanelContainer.new()
-	hero.custom_minimum_size = Vector2(0, 410)
+	hero.custom_minimum_size = Vector2(0, 300)
 	hero.add_theme_stylebox_override("panel", panel_style(Color("#10242B"), Color("#31585C")))
 	var layer := Control.new()
-	layer.custom_minimum_size = Vector2(0, 410)
+	layer.custom_minimum_size = Vector2(0, 300)
 	hero.add_child(layer)
 	var image := TextureRect.new()
 	image.texture = load("res://assets/ks3-riftfall-hero.jpg")
@@ -320,8 +341,8 @@ func hero_panel() -> PanelContainer:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(shade)
 	var copy := VBoxContainer.new()
-	copy.position = Vector2(44, 43)
-	copy.size = Vector2(500, 280)
+	copy.position = Vector2(44, 27)
+	copy.size = Vector2(500, 235)
 	copy.add_theme_constant_override("separation", 10)
 	layer.add_child(copy)
 	copy.add_child(make_label("—  SEASON 03  //  RIFT PROTOCOL", 9, C_CYAN))
@@ -333,10 +354,10 @@ func hero_panel() -> PanelContainer:
 	actions.add_child(ui_button("VIEW OPERATIONS  →", Callable(func() -> void: show_page("training")), false))
 	copy.add_child(actions)
 	var side := make_label("LIVE BUILD 0.9.4\n\nRIFT / FALL", 8, C_MUTED)
-	side.position = Vector2(760, 36)
+	side.position = Vector2(760, 24)
 	layer.add_child(side)
 	var stats := make_label("ACTIVE OPERATORS  18,642       YOUR STREAK  04 WINS       SEASON RANK  VECTOR IV\n\nSYNCED TO EU NORTH", 8, C_MUTED)
-	stats.position = Vector2(28, 345)
+	stats.position = Vector2(28, 242)
 	layer.add_child(stats)
 	return hero
 
