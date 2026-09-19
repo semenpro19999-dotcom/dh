@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .vite/
+.godot/
 .DS_Store
 *.blend1
 *.tmp

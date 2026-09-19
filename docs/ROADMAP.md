@@ -4,7 +4,7 @@
 
 Цель первого прототипа — не кейсы и не три polished maps. Нужно доказать одну честную 5×5 петлю:
 
-1. UE5 C++ project + dedicated server build;
+1. Godot 4.5+ GDScript project + headless dedicated server build;
 2. greybox `de_riftfall` with one A site and one B site;
 3. two teams of five bots / local clients;
 4. FEN-9 + M-7 + smoke + flash + HE + Key;
@@ -78,7 +78,7 @@
 
 ### P0 — must prove the game
 
-- [ ] UE5 C++ base project and deterministic server build;
+- [ ] Godot 4.5+ base project, GDScript rules and deterministic headless server build;
 - [ ] input, movement, viewmodel, hit registration, recoil;
 - [ ] FEN-9 / M-7 / Smoke / Flash / HE;
 - [ ] Key plant / defuse / round state / buy phase;
@@ -177,7 +177,7 @@ Cadence: weekly design review, twice-weekly playable build, fortnightly 10-playe
 | Weather is random-feeling | phase win delta >2% | forecast, fixed seed, reduce gameplay influence |
 | Destruction creates impossible angles | panel deaths cluster | author-only panels, two-state review, tournament lock |
 | Hero abilities dominate | utility pick rate >70% one kit | kits cost credits, cap duplicates, remove passive buffs |
-| Low-end performance | frame time > target | scalability tier, HLOD, limit Lumen/Nanite, GPU capture |
+| Low-end performance | frame time > target | scalability tiers, visibility ranges / occlusion, renderer profiles and GPU capture |
 | Marketplace fraud | chargebacks / account takeover | escrow, 2FA, cooldown, immutable ledger, risk queue |
 | Loot regulation | region blocks / age issues | odds disclosure, no pay-to-win, legal review before beta |
 | Anti-cheat privacy | false positives / consent issues | server authority first, minimal telemetry, appeal workflow |

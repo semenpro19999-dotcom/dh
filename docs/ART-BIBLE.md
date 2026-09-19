@@ -87,7 +87,7 @@ Thin 1.7 px line icons, squared terminals, simple geometry: grid, crosshair, bri
 | UI-008 | loading screen | PNG, 2560×1440 | map landmark + route plan | hero image is seed |
 | UI-009 | stickers / graffiti | SVG/PNG, 512 | signal glyphs, hand marks, no real brands | concept |
 | UI-010 | marketing key art | PNG, 3840×2160 | Rift / Fall wide shot | hero source in prototype |
-| UI-011 | case rarity effects | sprite sheet / Niagara | common noise, immortal amber burst | case modal CSS prototype |
+| UI-011 | case rarity effects | sprite sheet / GPUParticles2D | common noise, immortal amber burst | case modal Godot prototype |
 | UI-012 | avatar portraits | PNG, 512 | four faction-neutral operator silhouettes | prototype avatar CSS |
 
 ### Case card art direction

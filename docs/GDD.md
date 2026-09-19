@@ -187,7 +187,7 @@ Custom host settings: round count, weather seed, breakables on/off, buy time, ch
 - **Choke points:** A Main wide 2-lane, Mid window, B Tunnel one-way pressure;
 - **Сильный skill test:** smoke discipline и панель вокруг A Main;
 - **Rift Zone:** Helix Gate после 0:55 открывает один из двух заранее прочных проходов; forecast виден на buy card;
-- **Performance budget:** 8k visible static instances, 4k dynamic, Nanite для hero props, Lumen only high preset.
+- **Performance budget:** 8k visible static instances, 4k dynamic, MultiMesh / visibility ranges для repeated props, Forward+ lighting only on high preset.
 
 ### `cs_vanta_line` — Metro District
 
@@ -390,17 +390,18 @@ Audio sets: shot close / mid / distant, tail per zone, magazine / bolt / safety,
 
 ## 12. Техническое решение
 
-Выбран **Unreal Engine 5.6+** (final version pin на старте pre-production): C++ для authoritative rules / weapon data / replication, Blueprints для UI flow, prototyping, VFX hooks. Подробно — [`TECH_SPEC.md`](./TECH_SPEC.md).
+Выбран **Godot 4.5+** (stable version pin на старте pre-production): GDScript для authoritative rules / weapon data / UI / tools, native `Control` scenes для интерфейса, `ENetMultiplayerPeer` и `MultiplayerAPI` для client-server транспорта. Подробно — [`TECH_SPEC.md`](./TECH_SPEC.md).
 
-Почему UE5:
+Почему Godot 4.5+:
 
-- mature PC/console rendering and scalability;
-- World Partition / Data Layers для map states;
-- built-in replication, dedicated server, Gameplay Ability System where useful;
-- Nanite/Lumen selectively, not as a requirement for competitive low spec;
-- common workflows for FBX/glTF, Control Rig, Niagara, MetaSounds.
+- быстрый open-source workflow с понятными `.tscn`, `.gd` и `.tres`;
+- native Windows/Linux export и ясный путь к headless server;
+- встроенные `@rpc`, `MultiplayerSpawner`, `MultiplayerSynchronizer` и ENet для базовой сетевой вертикали;
+- Forward+ для desktop visual target, Mobile / Compatibility для scalability;
+- Blender → glTF/FBX → Godot pipeline без обязательной proprietary toolchain;
+- gameplay-critical backend остаётся отдельным сервисом, а не скрывается внутри engine project.
 
-Godot 4 остаётся отличным open-source вариантом для small prototype, но production target с console ambition, large-scale art and server-authoritative FPS benefits from UE5 ecosystem and tooling.
+Godot не даёт готовый matchmaking, marketplace или anti-cheat — это сознательно вынесено в backend и описано в технической спецификации. Для KS3 сначала доказываем честный 5×5 loop, затем добавляем GDExtension / platform integrations только при подтверждённой необходимости.
 
 ---
 

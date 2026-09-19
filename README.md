@@ -1,57 +1,90 @@
-# KS3 // Command Center
+# KS3 // Godot Command Center
 
-KS3 — производственный концепт и интерактивный UI-прототип соревновательного тактического шутера 5×5. Это не просто лендинг: в репозитории собран кликабельный командный центр с основными потоками игрока — стартовой операционной панелью, матчмейкингом, инвентарём, Case Lab, прогрессией, обучением, профилем, патчноутами и настройками.
+KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Проект переключён на **Godot 4.5+**: основной runtime теперь native Godot project с GDScript, `.tscn` scenes и headless-server планом на ENet.
 
-> **Статус:** playable UI vertical slice / production concept. Визуальная оболочка и UX работают; сетевой игровой клиент, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
+> **Статус:** playable UI vertical slice / production concept. Native Godot project создан и является новым target runtime; сетевой игровой клиент, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
 
-## Что реализовано
+## Что реализовано в Godot
 
-- тёмный tactical HUD в собственной визуальной системе KS3: графитовая основа, холодный teal-сигнал, янтарный warning;
-- responsive-версия от desktop до мобильного узкого viewport;
-- главное меню / Operations Overview с hero-сценой `Rift / Fall`, сезонным статусом, ранговым прогрессом, фидом операций и fireteam;
-- Matchmaking: режимы Ranked 5v5 / Casual / Wingman / Custom Lobby, выбор региона и карты, таймер поиска, post-match modal;
-- Inventory: фильтры, кредиты, loadout banner, rarity cards и inspect feedback;
-- Case Lab: seasonal cases, распределение редкостей, pity protocol и анимированный opening flow с reward state;
-- Progression: rank ladder, rating chart, season rewards;
-- Training: adaptive drills и AI coach концепт;
-- Profile, achievements, settings drawer, toast-feedback;
-- свои ассеты hero / оружия, сгенерированные для прототипа и лежащие в `public/assets/`.
+- `project.godot` с Godot 4.5+ configuration, 128 physics ticks и Compatibility renderer для лёгкого запуска;
+- `scenes/main.tscn` — стартовая сцена;
+- `scripts/main.gd` — native Control UI, созданный без HTML / browser runtime;
+- Главное меню / Operations Overview с hero-сценой `Rift / Fall`, сезонным статусом, ранговым прогрессом, операциями и fireteam;
+- Matchmaking: Ranked 5v5 / Casual / Wingman / Custom Lobby, карта, регион, timer и post-match dialog;
+- Inventory / loadout с weapon previews;
+- Case Lab с odds, pity protocol и reward dialog;
+- Progression с rank ladder и season rewards;
+- Training / AI Coach concept;
+- Field HUD с radar, killfeed, HP, armor, ammo, wallet, Echo и spectator state;
+- Profile, achievements и settings dialog;
+- responsive-friendly native layout и оригинальные preview assets в `public/assets/`.
 
-## Запуск
+## Запуск Godot 4.5+
+
+1. Установить стабильную версию [Godot 4.5](https://godotengine.org/download/archive/4.5-stable/) или более новую совместимую stable-версию.
+2. Открыть **корень репозитория** как Godot project — файл `project.godot` уже создан.
+3. Запустить `scenes/main.tscn` или нажать **F6 / F5**.
+
+Из командной строки:
+
+```bash
+godot --editor --path .
+godot --path . --editor --quit --check-only
+```
+
+В sandbox Godot binary не установлен, поэтому runtime smoke-test нужно выполнить на workstation с Godot 4.5+. GDScript, сцена и project configuration подготовлены под эту версию.
+
+## Browser preview
+
+Старый React/Vite command center сохранён в `src/` как быстрый браузерный reference / fallback для review UX:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Vite слушает `0.0.0.0` и принимает preview-host Arena. Production проверяется так:
-
-```bash
-npm run build
-npm run preview
-```
+Это не основной игровой runtime после миграции. В production Godot-проекта именно `project.godot`, `scenes/` и `scripts/` являются source of truth.
 
 ## Структура
 
 ```text
-src/main.jsx              # React UI, stateful screen flows и mock data
-src/styles.css            # KS3 visual system, responsive layout и motion
-public/assets/            # hero/key-art и preview weapon renders
-content/                  # целевая структура production-контента Blender/UE
+project.godot             # Godot 4.5+ project settings
+scenes/main.tscn          # native entry scene
+scripts/main.gd           # Godot command center UI
+
+content/models            # Blender high/low mesh sources
+content/textures          # PBR maps, masks, decals
+content/rigs              # armature / IK sources
+content/animations        # actions / NLA clips
+content/maps              # blockouts / greyboxes
+content/exports           # reviewed FBX / GLB / QA manifests
+public/assets             # prototype hero and weapon renders
+
+src/                      # legacy browser preview
 
 docs/GDD.md               # полный game design document
-/docs/UNIQUE-FEATURES.md  # спецификация новых механик и fairness guardrails
-/docs/TECH_SPEC.md        # UE5, netcode, backend, anti-cheat, CI/CD
-/docs/ART-BIBLE.md        # art direction, UI system, prompts, 2D/3D asset list
-/docs/3D_PIPELINE.md      # Blender workflow, maps, rigging, export и QA
-/docs/REFERENCES.md       # веб-референсы, документация и лицензии
-/docs/ROADMAP.md          # MVP → Alpha → Beta → Release, P0/P1/P2 и риски
+docs/UNIQUE-FEATURES.md   # уникальные механики и fairness guardrails
+docs/TECH_SPEC.md         # Godot, ENet, server, backend, anti-cheat, CI/CD
+docs/ART-BIBLE.md         # art direction, UI system, prompts, asset list
+docs/3D_PIPELINE.md       # Blender → Godot pipeline
+docs/REFERENCES.md        # Godot / Blender / art / audio sources
+docs/ROADMAP.md           # MVP → Alpha → Beta → Release
+docs/GODOT_MIGRATION.md   # что мигрировано и следующий Godot-план
 ```
 
-## Принцип продукта
+## Техническое решение
 
-**KS3: precision over force.** Игра сохраняет читаемую основу классического tactical FPS — точность, звук, экономика, utility и командные решения — и добавляет контролируемое состояние пространства. Новые состояния всегда детерминированы сервером, имеют телеграфирование и counterplay: глубина не должна превращаться в случайность или pay-to-win.
+- **Engine:** Godot 4.5+;
+- **Gameplay / UI:** GDScript + native Control / Node3D scenes;
+- **Networking:** `ENetMultiplayerPeer`, `MultiplayerAPI`, `@rpc`, `MultiplayerSpawner`, `MultiplayerSynchronizer`;
+- **Server:** authoritative headless Godot export;
+- **Backend:** отдельные Auth / Party / Match / Inventory / Case / Market сервисы;
+- **3D:** Blender 4.5 LTS+ → glTF/FBX → Godot;
+- **Renderer:** Forward+ for high desktop target, Mobile / Compatibility fallback;
+- **CI:** headless project check, GDScript tests, map/asset lint, Windows client + Linux server exports.
 
-## Важное ограничение прототипа
+Godot не предоставляет готовые matchmaking, marketplace, identity или anti-cheat сервисы. Это не скрывается в engine layer: контракты и границы backend описаны в `docs/TECH_SPEC.md`.
 
-Репозиторий не притворяется готовым online-shooter production build. Здесь зафиксирована проверяемая концепция и UX-вертикаль, на которую можно навесить Unreal Engine 5 client, C++ rules layer, dedicated server и backend по спецификациям в `docs/`. Установка Unreal/Blender и запуск dedicated server не выполняются в sandbox автоматически — вместо этого создана воспроизводимая структура производства, naming convention и пошаговый pipeline.
+## Product principle
+
+**KS3: precision over force.** Игра сохраняет читаемую основу tactical FPS — точность, звук, экономика, utility и командные решения — и добавляет контролируемое состояние пространства. Новые состояния детерминированы сервером, телеграфируются и имеют counterplay: глубина не должна превращаться в случайность или pay-to-win.

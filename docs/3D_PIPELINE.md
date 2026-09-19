@@ -1,10 +1,10 @@
-# KS3 — 3D pipeline: Blender → Unreal Engine 5
+# KS3 — 3D pipeline: Blender → Godot 4.5+
 
 ## 0. Editor choice
 
-**Blender 4.5 LTS+** — современный бесплатный 3D-редактор для hard-surface, sculpt, UV, rigging, animation, geometry nodes и Python automation. Рендер-превью — Eevee/Cycles, asset review — glTF viewer / Unreal.
+**Blender 4.5 LTS+** — современный бесплатный 3D-редактор для hard-surface, sculpt, UV, rigging, animation, geometry nodes и Python automation. Рендер-превью — Eevee/Cycles, asset review — glTF viewer / Godot 4.5+.
 
-Официальная установка: [blender.org/download](https://www.blender.org/download/). Официальный manual для glTF 2.0 и текущих exporter options: [Blender glTF manual](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html). FBX используем для Unreal-compatible skeletal animation; glTF/GLB — для быстрых review, web preview и interchange.
+Официальная установка: [blender.org/download](https://www.blender.org/download/). Официальный manual для glTF 2.0 и текущих exporter options: [Blender glTF manual](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html). FBX используем только там, где нужен стабильный skeletal interchange; glTF/GLB — основной формат для быстрых review, web preview и импорта в Godot.
 
 > В sandbox не выполняется тихая установка бинарного 3D-редактора: лицензия, OS package и GPU должны быть выбраны на workstation команды. Ниже — воспроизводимая настройка, структура и quality gates.
 
@@ -16,7 +16,7 @@
 content/
 ├── models/       # high / low mesh, weapon, character, prop sources
 ├── textures/     # ALB, NRM, RMA, ORM, masks, decals
-├── rigs/         # armature, IK, Control Rig sources
+├── rigs/         # armature, IK, AnimationTree / IK sources
 ├── animations/   # actions, NLA, exported clips, mocap cleanup
 ├── maps/         # blockout, greybox, gameplay art, audio zones
 └── exports/      # FBX, GLB, preview renders, QA manifests
@@ -44,7 +44,7 @@ KS3_MAP_RIFTFALL_GAMEPLAY.umap
 ## 2. Blender install / startup checklist
 
 1. Install Blender LTS from the official site;
-2. set Units → Metric, Unit Scale `0.01` to match Unreal centimeters or use Meter with explicit export scale policy;
+2. set Units → Metric, Unit Scale `1.0`: в Godot одна world unit = один метр; weapon / prop dimensions фиксируются в asset sheet;
 3. set scene frame rate 60 fps; animation source can be 30 fps mocap, then resample;
 4. enable built-in **Import-Export: glTF 2.0**, **FBX** and **Node: Node Wrangler**;
 5. add optional internal add-ons only after license review: Rigify for rapid rig test, Blender Game Animation Tools only if maintained;
@@ -85,7 +85,7 @@ Do not install random scripts from forums into production Blender. Keep add-on `
 
 - bake high → low: normal, AO, curvature, thickness where useful;
 - textures: Albedo / Normal / ORM, optional emissive and mask;
-- tangent space must match Unreal; use MikkTSpace and test a known sphere;
+- tangent space должен совпадать с Godot StandardMaterial3D; используем MikkTSpace и тестируем известную sphere;
 - roughness breaks up large flat surfaces; metallic only true metal;
 - validate no baked light or shadow in albedo.
 
@@ -105,8 +105,8 @@ Do not install random scripts from forums into production Blender. Keep add-on `
 4. create `KS3_Skeleton` with stable bone names and socket contract;
 5. skin with max 4 influences per vertex for export safety;
 6. test weight paint: crouch, sprint, reload, death, aim, grenade throw;
-7. use Control Rig / IK for foot placement, weapon hand alignment and additive recoil;
-8. export base skeleton + animations, then use Unreal retargeting for training bots / faction skins.
+7. use AnimationTree / IK / IK for foot placement, weapon hand alignment and additive recoil;
+8. export base skeleton + animations, затем настраиваем Skeleton3D / AnimationTree и retargeting-профили для training bots / faction skins.
 
 ### Animation list
 
@@ -135,16 +135,16 @@ Facial / emotion is not required for competitive MVP. Radio can use body gesture
 
 - hero landmark first, then mid-distance blockers, then micro props;
 - use modular trims, decals and vertex paint; no unique mesh for every wall;
-- set skybox / overcast / storm variants as Data Layers;
+- set skybox / overcast / storm variants as separate Godot scenes or Environment resources;
 - bake or fallback lighting for competitive scalability;
 - decals never obscure enemy read or callout signs.
 
 ### Phase D — optimization
 
-- HLOD / Nanite review, instance repeated props;
-- LOD screen sizes and shadow budgets;
+- visibility ranges / occlusion review, MultiMesh для повторяющихся props;
+- LOD screen sizes и shadow budgets для MeshInstance3D;
 - texture streaming pool; no unexpected 8K on minor props;
-- occlusion / World Partition cells;
+- occlusion / scene-streaming cells;
 - GPU/CPU capture on target low, mid, high machines;
 - test network physics only on gameplay actors, not decorative debris.
 
@@ -159,15 +159,14 @@ For every weapon / skin:
 5. display rarity label in UI, never bake label into asset image;
 6. store source `.blend`, final `.fbx` / `.glb`, preview and manifest.
 
-## 7. Unreal import / QA
+## 7. Godot import / QA
 
-- import FBX with correct unit and skeleton; never auto-generate duplicate skeleton for same family;
-- verify normals, tangents, socket transform, material slot order;
-- apply Nanite only on static world / approved weapon meshes; viewmodel may remain conventional;
-- create Material Instance from KS3 master: base, normal, ORM, emissive, decal mask, wear amount;
-- create LODGroup and collision; use `UCX_` collision naming;
-- compare Blender and Unreal render under neutral HDRI;
-- `Data Validation` must pass before asset moves from `WIP` to `APPROVED`.
+- import FBX / glTF with correct meter scale and Skeleton3D; never create duplicate skeleton for one animation family;
+- verify normals, tangents, socket transforms and material slot order;
+- create `StandardMaterial3D` / controlled `ShaderMaterial` from the KS3 master: base, normal, ORM, emissive, decal mask, wear amount;
+- create MeshInstance3D LOD / visibility ranges and CollisionShape3D;
+- compare Blender and Godot render under neutral HDRI;
+- Godot scene validation and asset lint must pass before an asset moves from `WIP` to `APPROVED`.
 
 ## 8. Asset status
 
