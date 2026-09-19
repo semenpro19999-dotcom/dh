@@ -14,7 +14,7 @@ const C_RED := Color("#EF7773")
 const C_GREEN := Color("#72C58D")
 
 var player := Vector2(0.18, 0.52)
-var enemies: Array = [Vector2(0.72, 0.30), Vector2(0.82, 0.66), Vector2(0.58, 0.48)]
+var enemies: Array[Vector2] = [Vector2(0.72, 0.30), Vector2(0.82, 0.66), Vector2(0.58, 0.48)]
 var tracers: Array = []
 var round_time := 115.0
 var fire_cooldown := 0.0
@@ -196,7 +196,7 @@ func _draw() -> void:
 	draw_rect(cover_b, Color("#243B42"), true)
 
 	for enemy in enemies:
-		var enemy_pos := arena.position + enemy * arena.size
+		var enemy_pos: Vector2 = arena.position + enemy * arena.size
 		draw_circle(enemy_pos, 13.0, Color(0.55, 0.18, 0.20, 0.9))
 		draw_circle(enemy_pos, 6.0, C_RED)
 		draw_line(enemy_pos + Vector2(-18, 20), enemy_pos + Vector2(18, 20), C_RED, 2.0)
