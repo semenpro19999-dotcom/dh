@@ -74,11 +74,11 @@ func build_shell() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	main_column.add_child(scroll)
 
 	var page_margin := MarginContainer.new()
 	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_margin.add_theme_constant_override("margin_left", 24)
 	page_margin.add_theme_constant_override("margin_right", 24)
 	page_margin.add_theme_constant_override("margin_top", 10)
@@ -87,7 +87,6 @@ func build_shell() -> void:
 	page_host = VBoxContainer.new()
 	page_host.name = "PageHost"
 	page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_host.add_theme_constant_override("separation", 10)
 	page_margin.add_child(page_host)
 
