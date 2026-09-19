@@ -1,6 +1,6 @@
 # KS3 — References / knowledge base
 
-Дата сверки ссылок: 19 сентября 2026. Ссылки — источники для исследования, а не assets, которые можно автоматически положить в игру. Перед production-интеграцией сверять актуальную лицензию, региональные условия и attribution.
+Дата сверки ссылок: 20 сентября 2026. Ссылки — источники для исследования, а не assets, которые можно автоматически положить в игру. Перед production-интеграцией сверять актуальную лицензию, региональные условия и attribution.
 
 ## 1. Godot 4.5+ и networking
 
@@ -12,6 +12,17 @@
 - [MultiplayerSpawner class reference](https://docs.godotengine.org/en/4.5/classes/class_multiplayerspawner.html) — controlled replication of player / projectile scenes.
 - [MultiplayerSynchronizer class reference](https://docs.godotengine.org/en/4.5/classes/class_multiplayersynchronizer.html) — declared state replication; high-frequency movement remains explicitly profiled.
 - [Godot GitHub repository](https://github.com/godotengine/godot) — source, issue tracker and release context.
+
+### 1.1 Godot 3D gameplay references
+
+- [Godot 4.5 — Moving the player with code](https://docs.godotengine.org/en/4.5/getting_started/first_3d_game/03.player_movement_code.html) — `CharacterBody3D`, gravity, velocity and `move_and_slide()` pattern.
+- [CharacterBody3D](https://docs.godotengine.org/en/4.5/classes/class_characterbody3d.html) — controlled 3D actor with collision-aware movement.
+- [Camera3D](https://docs.godotengine.org/en/4.5/classes/class_camera3d.html) — perspective camera, FOV and first-person view contract.
+- [RayCast3D](https://docs.godotengine.org/en/4.5/classes/class_raycast3d.html) — immediate hit detection for weapon aiming and interaction.
+- [Environment](https://docs.godotengine.org/en/4.5/classes/class_environment.html) — background color, ambient light and scene readability.
+- [Godot 4.5 — Multiple resolutions](https://docs.godotengine.org/en/4.5/tutorials/rendering/multiple_resolutions.html) — `canvas_items`, `expand` aspect and responsive window behavior.
+
+**What KS3 takes from this:** the first playable match uses the native Godot 3D contract: a `CharacterBody3D`-style player controller, `Camera3D` first-person view, `RayCast3D` weapon hit test, static collision geometry and a separate CanvasLayer HUD. The current match is a local vertical slice; authoritative multiplayer remains the next layer.
 
 **What KS3 takes from this:** server owns round state, hit validation, Key, weather and panel state; client owns presentation and bounded prediction. Matchmaking, identity, inventory and fraud protection live in the backend rather than pretending to be engine features.
 

@@ -1,9 +1,9 @@
 # KS3 — Technical Specification (Godot 4.5+)
 
 **Decision lock:** Godot Engine 4.5+ stable, GDScript-first, native desktop target.
-**Current runtime:** `project.godot` + `scenes/main.tscn` + `scripts/main.gd` — editable command-center vertical slice.
+**Current runtime:** `project.godot` → `scenes/main.tscn` + `scripts/main.gd` (командный центр) → `scenes/match.tscn` + `scripts/match.gd` (локальный 3D playable slice).
 **Target:** Windows / Linux first, with console feasibility after the PC multiplayer gate.
-**UI review target:** fixed 1440×900 window; every native screen uses the same viewport contract and scrolls vertically only when content exceeds the page.
+**UI review target:** базовый viewport 1440×900 в изменяемом окне; stretch aspect `expand`, минимальный размер 800×500, страницы растягиваются по viewport и прокручиваются только при переполнении.
 
 ## 1. Почему Godot 4.5+
 
@@ -36,8 +36,10 @@ Godot 4.5 renderer documentation описывает Forward+ как desktop-orie
 
 ```text
 project.godot                 # Godot 4.5+ project, 128 physics ticks, renderer profile
-scenes/main.tscn              # root Control scene
+scenes/main.tscn              # root Control scene for command center
+scenes/match.tscn             # root Node3D scene for local match
 scripts/main.gd               # native UI vertical slice and screen state
+scripts/match.gd              # 3D player, camera, arena, RayCast3D and HUD
 scripts/network_manager.gd    # next P0: ENet host / client lifecycle
 scripts/match_state.gd        # next P0: authoritative round model
 scenes/ui/                    # reusable HUD / menu scenes after extraction
@@ -52,7 +54,7 @@ content/exports               # reviewed FBX / GLB / QA manifests
 assets                 # JPG key art used by the native Godot UI slice
 ```
 
-The current `main.gd` intentionally builds the command center with native `Control` nodes. Every screen is directly editable in Godot and запускается из `project.godot`.
+`main.gd` строит командный центр на native `Control` nodes. Кнопки запускают `match.tscn`, где `match.gd` создаёт локальную 3D-арену на `Node3D`, `CharacterBody3D`, `Camera3D`, `RayCast3D` и `StaticBody3D`. UI и игровой экран остаются редактируемыми в Godot.
 
 ## 3. Runtime architecture
 

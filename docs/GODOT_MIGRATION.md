@@ -7,7 +7,7 @@
 KS3 теперь является чистым native Godot 4.5+ проектом:
 
 - engine target: Godot 4.5+;
-- runtime: `project.godot` → `scenes/main.tscn` → `scripts/main.gd`;
+- runtime: `project.godot` → `scenes/main.tscn` / `scripts/main.gd` → `scenes/match.tscn` / `scripts/match.gd`;
 - язык: GDScript;
 - networking target: `ENetMultiplayerPeer` + Godot high-level multiplayer API;
 - future dedicated server: headless Godot export;
