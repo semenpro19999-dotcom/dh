@@ -213,9 +213,9 @@ func build_header(main_column: VBoxContainer) -> void:
 	var region := make_label("●  СЕВЕР ЕВРОПЫ     32 мс", 8, C_CYAN)
 	region.add_theme_stylebox_override("normal", panel_style(Color("#0E1B21"), Color("#25434A")))
 	row.add_child(region)
-	var notify := ui_button("◌", Callable(), false)
-	notify.custom_minimum_size = Vector2(34, 34)
-	row.add_child(notify)
+	var notify_button := ui_button("◌", Callable(), false)
+	notify_button.custom_minimum_size = Vector2(34, 34)
+	row.add_child(notify_button)
 	var gear := ui_button("⚙", Callable(open_settings), false)
 	gear.custom_minimum_size = Vector2(34, 34)
 	row.add_child(gear)
@@ -254,9 +254,14 @@ func show_page(id: String) -> void:
 		var active: bool = String(key) == id
 		button.add_theme_color_override("font_color", C_CYAN if active else C_MUTED)
 		button.add_theme_stylebox_override("normal", panel_style(Color("#12272B") if active else Color(0, 0, 0, 0), C_CYAN if active else Color(0, 0, 0, 0)))
+	# Нельзя освобождать нажатую кнопку внутри её собственного сигнала pressed.
+	call_deferred("_clear_page", id)
+
+func _clear_page(id: String) -> void:
+	if id != current_page:
+		return
 	for child in page_host.get_children():
-		child.free()
-	# Сначала даём контейнерам пересчитать старую страницу, затем строим новую.
+		child.queue_free()
 	call_deferred("_render_page", id)
 
 func _render_page(id: String) -> void:
@@ -430,7 +435,8 @@ func toggle_queue() -> void:
 
 func _on_queue_tick() -> void:
 	queue_seconds += 1
-	notify("ПОИСК  %02d:%02d  ·  СЕВЕР ЕВРОПЫ" % [queue_seconds / 60, queue_seconds % 60])
+	var minutes := floori(queue_seconds / 60.0)
+	notify("ПОИСК  %02d:%02d  ·  СЕВЕР ЕВРОПЫ" % [minutes, queue_seconds % 60])
 
 func show_match_summary() -> void:
 	var dialog := AcceptDialog.new()
@@ -734,13 +740,13 @@ func add_operation(box: VBoxContainer, index: String, title: String, description
 	line.add_child(copy)
 	box.add_child(line)
 
-func add_squad_row(box: VBoxContainer, name: String, role: String, status: String) -> void:
+func add_squad_row(box: VBoxContainer, operator_name: String, role: String, status: String) -> void:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size = Vector2(0, 43)
 	row.add_child(make_label("●", 12, C_CYAN if status != "AWAY" else C_DIM))
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_child(make_label(name, 10, C_TEXT))
+	copy.add_child(make_label(operator_name, 10, C_TEXT))
 	copy.add_child(make_label(role, 7, C_DIM))
 	row.add_child(copy)
 	row.add_child(make_label(status, 7, C_AMBER if status == "В БОЮ" else C_MUTED))
@@ -751,10 +757,10 @@ func section_rule(text: String) -> Label:
 	line.custom_minimum_size = Vector2(0, 22)
 	return line
 
-func make_label(text: String, size: int, color: Color) -> Label:
+func make_label(text: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	# По умолчанию сохраняем естественную ширину подписей. Перенос у каждой
 	# подписи сжимал элементы HBox/VBox до нескольких пикселей и ставил буквы в столбик.
