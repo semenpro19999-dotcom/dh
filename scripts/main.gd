@@ -78,6 +78,7 @@ func build_shell() -> void:
 
 	var page_margin := MarginContainer.new()
 	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_margin.add_theme_constant_override("margin_left", 24)
 	page_margin.add_theme_constant_override("margin_right", 24)
 	page_margin.add_theme_constant_override("margin_top", 10)
@@ -86,6 +87,7 @@ func build_shell() -> void:
 	page_host = VBoxContainer.new()
 	page_host.name = "PageHost"
 	page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_host.add_theme_constant_override("separation", 10)
 	page_margin.add_child(page_host)
 
@@ -254,8 +256,12 @@ func show_page(id: String) -> void:
 		button.add_theme_stylebox_override("normal", panel_style(Color("#12272B") if active else Color(0, 0, 0, 0), C_CYAN if active else Color(0, 0, 0, 0)))
 	for child in page_host.get_children():
 		child.free()
-	if page_scroll:
-		page_scroll.scroll_vertical = 0
+	# Сначала даём контейнерам пересчитать старую страницу, затем строим новую.
+	call_deferred("_render_page", id)
+
+func _render_page(id: String) -> void:
+	if id != current_page:
+		return
 	match id:
 		"overview": build_overview()
 		"matchmaking": build_matchmaking()
@@ -266,6 +272,12 @@ func show_page(id: String) -> void:
 		"field-hud": build_field_hud()
 		"patch-notes": build_patch_notes()
 		"profile": build_profile()
+	call_deferred("_reset_page_scroll")
+
+func _reset_page_scroll() -> void:
+	if is_instance_valid(page_scroll):
+		page_scroll.scroll_horizontal = 0
+		page_scroll.scroll_vertical = 0
 
 func build_overview() -> void:
 	var intro := HBoxContainer.new()
