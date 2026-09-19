@@ -2,13 +2,15 @@
 
 KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Основной runtime проекта — **Godot 4.5+**: GDScript, native `.tscn` scenes, ENet и headless-server план.
 
-> **Статус:** playable UI vertical slice / production concept. Native Godot project создан и является единственным runtime проекта; сетевой игровой клиент, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
+> **Статус:** native Godot vertical slice с командным центром и запускаемым локальным игровым экраном. Сетевая синхронизация, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
 
 ## Что реализовано
 
 - `project.godot` с Godot 4.5+ configuration, базовым viewport **1440×900**, изменяемым окном от 800×500, 128 physics ticks и Compatibility renderer для лёгкого запуска;
-- `scenes/main.tscn` — стартовая сцена;
+- `scenes/main.tscn` — стартовая сцена командного центра;
+- `scenes/match.tscn` — запускаемая локальная игровая сцена;
 - `scripts/main.gd` — нативный интерфейс Control без web-слоя;
+- `scripts/match.gd` — игровой экран с движением, прицеливанием, стрельбой и HUD;
 - Главное меню / обзор операций с hero-сценой `Разлом / Падение`, сезонным статусом, ранговым прогрессом, операциями и отрядом;
 - Поиск матча: рейтинг 5×5 / казуальный режим / дуэль / своё лобби, карта, регион, таймер и окно итогов;
 - Снаряжение с предпросмотром оружия;
@@ -38,8 +40,10 @@ godot --path . --editor --quit --check-only
 
 ```text
 project.godot             # Godot 4.5+ project settings
-scenes/main.tscn          # native entry scene
-scripts/main.gd           # Godot command center UI
+scenes/main.tscn          # стартовая сцена командного центра
+scenes/match.tscn         # локальная игровая сцена
+scripts/main.gd           # интерфейс командного центра
+scripts/match.gd          # игровой HUD и управление
 scripts/network_manager.gd# ENet host / client lifecycle
 scripts/match_state.gd    # server-authoritative round model
 

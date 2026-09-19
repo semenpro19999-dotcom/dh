@@ -17,4 +17,4 @@
 
 ## Проверка
 
-Точка запуска остаётся прежней: `project.godot` → `scenes/main.tscn` → `scripts/main.gd`. В sandbox нет установленного бинарника Godot, поэтому окончательную проверку F5 нужно выполнить в Godot 4.5+ на рабочей машине.
+Точка запуска меню: `project.godot` → `scenes/main.tscn` → `scripts/main.gd`. Кнопки запускают `scenes/match.tscn` через `scripts/match.gd`. В sandbox нет установленного бинарника Godot, поэтому окончательную проверку F5 нужно выполнить в Godot 4.5+ на рабочей машине.

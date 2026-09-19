@@ -284,6 +284,15 @@ func _reset_page_scroll() -> void:
 		page_scroll.scroll_horizontal = 0
 		page_scroll.scroll_vertical = 0
 
+func launch_match() -> void:
+	# Смена сцены выполняется после сигнала pressed, чтобы не освобождать кнопку внутри сигнала.
+	call_deferred("_open_match_scene")
+
+func _open_match_scene() -> void:
+	var result := get_tree().change_scene_to_file("res://scenes/match.tscn")
+	if result != OK:
+		push_error("Не удалось открыть игровую сцену: %s" % result)
+
 func build_overview() -> void:
 	var intro := HBoxContainer.new()
 	intro.custom_minimum_size = Vector2(0, 18)
@@ -303,7 +312,7 @@ func build_overview() -> void:
 	play[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play[1].add_child(make_label("5×5 · до 13 очков · овертайм включён", 9, C_MUTED))
 	play[1].add_child(make_label("РАЗЛОМ / ПАДЕНИЕ     СЕВЕР ЕВРОПЫ · 32 мс", 9, C_CYAN))
-	play[1].add_child(ui_button("▶  ИГРАТЬ В РЕЙТИНГ", Callable(func() -> void: show_page("matchmaking")), true))
+	play[1].add_child(ui_button("▶  ИГРАТЬ В РЕЙТИНГ", Callable(launch_match), true))
 	quick.add_child(play[0])
 
 	var rank := make_card("ТВОЙ СИГНАЛ", "ВЕКТОР IV", 135)
@@ -371,7 +380,7 @@ func hero_panel() -> PanelContainer:
 	copy.add_child(make_label("Изучи поле. Сломай линию. Каждый раунд — система, которую можно разгадать.", 12, Color("#A5B8B8")))
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 10)
-	actions.add_child(ui_button("▶  НАЙТИ МАТЧ", Callable(func() -> void: show_page("matchmaking")), true))
+	actions.add_child(ui_button("▶  НАЙТИ МАТЧ", Callable(launch_match), true))
 	actions.add_child(ui_button("ОПЕРАЦИИ  →", Callable(func() -> void: show_page("training")), false))
 	copy.add_child(actions)
 	var side := make_label("СБОРКА 0.9.4\n\nРАЗЛОМ / ПАДЕНИЕ", 8, C_MUTED)
@@ -398,7 +407,7 @@ func build_matchmaking() -> void:
 	search[1].add_child(make_label("ПУЛ КАРТ        РАЗЛОМ / ПАДЕНИЕ + 4 КАРТЫ", 9, C_MUTED))
 	search[1].add_child(make_label("РАЗМЕР ГРУППЫ  СОЛО / ДУО / ПОЛНЫЙ ОТРЯД", 9, C_MUTED))
 	search[1].add_child(make_label("РЕГИОН СЕРВЕРА   СЕВЕР ЕВРОПЫ · 32 мс", 9, C_MUTED))
-	var queue_button := ui_button("НАЧАТЬ ПОИСК", Callable(toggle_queue), true)
+	var queue_button := ui_button("НАЧАТЬ ПОИСК", Callable(launch_match), true)
 	queue_button.name = "QueueButton"
 	queue_button.add_to_group("queue_button")
 	search[1].add_child(queue_button)
@@ -569,7 +578,7 @@ func build_progression() -> void:
 	progress.add_theme_stylebox_override("fill", panel_style(C_CYAN, C_CYAN))
 	hero[1].add_child(progress)
 	hero[1].add_child(make_label("ОСТАЛОСЬ 183 ОЧКА\nОдна чистая победа приблизит тебя к Вектору V.", 10, C_MUTED))
-	hero[1].add_child(ui_button("В ОЧЕРЕДЬ РЕЙТИНГА  →", Callable(func() -> void: show_page("matchmaking")), true))
+	hero[1].add_child(ui_button("В ОЧЕРЕДЬ РЕЙТИНГА  →", Callable(launch_match), true))
 	page_host.add_child(hero[0])
 	var ladder := make_card("ЛЕСТНИЦА РАНГОВ // 06", "Подъём", 180)
 	ladder[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
