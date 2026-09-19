@@ -55,12 +55,14 @@ func build_shell() -> void:
 
 	var sidebar := PanelContainer.new()
 	sidebar.custom_minimum_size = Vector2(252, 0)
+	sidebar.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sidebar.add_theme_stylebox_override("panel", panel_style(Color("#0C141C"), Color("#182831")))
 	shell.add_child(sidebar)
 	build_sidebar(sidebar)
 
 	var main_column := VBoxContainer.new()
 	main_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main_column.add_theme_constant_override("separation", 0)
 	shell.add_child(main_column)
 	build_header(main_column)

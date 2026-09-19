@@ -3,6 +3,7 @@
 **Decision lock:** Godot Engine 4.5+ stable, GDScript-first, native desktop target.
 **Current runtime:** `project.godot` + `scenes/main.tscn` + `scripts/main.gd` — editable command-center vertical slice.
 **Target:** Windows / Linux first, with console feasibility after the PC multiplayer gate.
+**UI review target:** fixed 1440×900 window; every native screen uses the same viewport contract and scrolls vertically only when content exceeds the page.
 
 ## 1. Почему Godot 4.5+
 
