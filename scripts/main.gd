@@ -40,6 +40,7 @@ var pages := {
 }
 
 func _ready() -> void:
+	get_window().min_size = Vector2i(800, 500)
 	build_shell()
 	show_page("overview")
 

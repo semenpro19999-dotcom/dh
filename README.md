@@ -6,7 +6,7 @@ KS3 — производственный концепт и интерактив�
 
 ## Что реализовано
 
-- `project.godot` с Godot 4.5+ configuration, фиксированным окном **1440×900**, 128 physics ticks и Compatibility renderer для лёгкого запуска;
+- `project.godot` с Godot 4.5+ configuration, базовым viewport **1440×900**, изменяемым окном от 800×500, 128 physics ticks и Compatibility renderer для лёгкого запуска;
 - `scenes/main.tscn` — стартовая сцена;
 - `scripts/main.gd` — нативный интерфейс Control без web-слоя;
 - Главное меню / обзор операций с hero-сценой `Разлом / Падение`, сезонным статусом, ранговым прогрессом, операциями и отрядом;
