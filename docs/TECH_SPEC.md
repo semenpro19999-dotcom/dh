@@ -48,10 +48,10 @@ content/rigs                  # armature / IK placeholder
 content/animations            # actions / NLA placeholder
 content/maps                  # blockout / greybox placeholder
 content/exports               # reviewed FBX / GLB / QA manifests
-public/assets                 # prototype JPG key art used by the UI slice
+assets                 # JPG key art used by the native Godot UI slice
 ```
 
-The current `main.gd` intentionally builds the command center with native `Control` nodes instead of HTML. This makes every screen directly editable in Godot and keeps the prototype free of a browser runtime dependency. The existing `src/` Vite preview remains as a browser reference while the Godot project becomes the target runtime.
+The current `main.gd` intentionally builds the command center with native `Control` nodes. Every screen is directly editable in Godot and запускается из `project.godot`.
 
 ## 3. Runtime architecture
 
@@ -197,7 +197,7 @@ A third-party anti-cheat / platform SDK is an optional integration behind a GDEx
 - unit tests for economy, recoil, damage, odds and pity;
 - scene validation: missing resources, node paths, collision layers;
 - Blender export / asset lint;
-- `npm run build` remains a compatibility preview check until `src/` is retired.
+- headless Godot project check remains mandatory for every pull request.
 
 ### Nightly
 

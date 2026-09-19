@@ -4,7 +4,7 @@
 
 **Blender 4.5 LTS+** — современный бесплатный 3D-редактор для hard-surface, sculpt, UV, rigging, animation, geometry nodes и Python automation. Рендер-превью — Eevee/Cycles, asset review — glTF viewer / Godot 4.5+.
 
-Официальная установка: [blender.org/download](https://www.blender.org/download/). Официальный manual для glTF 2.0 и текущих exporter options: [Blender glTF manual](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html). FBX используем только там, где нужен стабильный skeletal interchange; glTF/GLB — основной формат для быстрых review, web preview и импорта в Godot.
+Официальная установка: [blender.org/download](https://www.blender.org/download/). Официальный manual для glTF 2.0 и текущих exporter options: [Blender glTF manual](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html). FBX используем только там, где нужен стабильный skeletal interchange; glTF/GLB — основной формат для быстрых review и импорта в Godot.
 
 > В sandbox не выполняется тихая установка бинарного 3D-редактора: лицензия, OS package и GPU должны быть выбраны на workstation команды. Ниже — воспроизводимая настройка, структура и quality gates.
 

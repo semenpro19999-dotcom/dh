@@ -1,14 +1,14 @@
 # KS3 // Godot Command Center
 
-KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Проект переключён на **Godot 4.5+**: основной runtime теперь native Godot project с GDScript, `.tscn` scenes и headless-server планом на ENet.
+KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Основной runtime проекта — **Godot 4.5+**: GDScript, native `.tscn` scenes, ENet и headless-server план.
 
-> **Статус:** playable UI vertical slice / production concept. Native Godot project создан и является новым target runtime; сетевой игровой клиент, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
+> **Статус:** playable UI vertical slice / production concept. Native Godot project создан и является единственным runtime проекта; сетевой игровой клиент, dedicated server, 3D-модели и backend находятся в roadmap как следующие игровые вехи.
 
-## Что реализовано в Godot
+## Что реализовано
 
 - `project.godot` с Godot 4.5+ configuration, 128 physics ticks и Compatibility renderer для лёгкого запуска;
 - `scenes/main.tscn` — стартовая сцена;
-- `scripts/main.gd` — native Control UI, созданный без HTML / browser runtime;
+- `scripts/main.gd` — native Control UI без web-слоя;
 - Главное меню / Operations Overview с hero-сценой `Rift / Fall`, сезонным статусом, ранговым прогрессом, операциями и fireteam;
 - Matchmaking: Ranked 5v5 / Casual / Wingman / Custom Lobby, карта, регион, timer и post-match dialog;
 - Inventory / loadout с weapon previews;
@@ -17,7 +17,7 @@ KS3 — производственный концепт и интерактив�
 - Training / AI Coach concept;
 - Field HUD с radar, killfeed, HP, armor, ammo, wallet, Echo и spectator state;
 - Profile, achievements и settings dialog;
-- responsive-friendly native layout и оригинальные preview assets в `public/assets/`.
+- оригинальные preview assets в `assets/`.
 
 ## Запуск Godot 4.5+
 
@@ -34,33 +34,22 @@ godot --path . --editor --quit --check-only
 
 В sandbox Godot binary не установлен, поэтому runtime smoke-test нужно выполнить на workstation с Godot 4.5+. GDScript, сцена и project configuration подготовлены под эту версию.
 
-## Browser preview
-
-Старый React/Vite command center сохранён в `src/` как быстрый браузерный reference / fallback для review UX:
-
-```bash
-npm install
-npm run dev
-```
-
-Это не основной игровой runtime после миграции. В production Godot-проекта именно `project.godot`, `scenes/` и `scripts/` являются source of truth.
-
 ## Структура
 
 ```text
 project.godot             # Godot 4.5+ project settings
 scenes/main.tscn          # native entry scene
 scripts/main.gd           # Godot command center UI
+scripts/network_manager.gd# ENet host / client lifecycle
+scripts/match_state.gd    # server-authoritative round model
 
+assets/                   # hero и weapon preview assets для Godot
 content/models            # Blender high/low mesh sources
 content/textures          # PBR maps, masks, decals
 content/rigs              # armature / IK sources
 content/animations        # actions / NLA clips
 content/maps              # blockouts / greyboxes
 content/exports           # reviewed FBX / GLB / QA manifests
-public/assets             # prototype hero and weapon renders
-
-src/                      # legacy browser preview
 
 docs/GDD.md               # полный game design document
 docs/UNIQUE-FEATURES.md   # уникальные механики и fairness guardrails
@@ -69,7 +58,7 @@ docs/ART-BIBLE.md         # art direction, UI system, prompts, asset list
 docs/3D_PIPELINE.md       # Blender → Godot pipeline
 docs/REFERENCES.md        # Godot / Blender / art / audio sources
 docs/ROADMAP.md           # MVP → Alpha → Beta → Release
-docs/GODOT_MIGRATION.md   # что мигрировано и следующий Godot-план
+docs/GODOT_MIGRATION.md   # решения Godot-перехода и следующий план
 ```
 
 ## Техническое решение

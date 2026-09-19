@@ -1,25 +1,34 @@
-# KS3 — Migration from browser/UE concept to Godot 4.5+
-
-## Что изменилось
+# KS3 — Godot 4.5+ project cleanup
 
 Дата: 19 сентября 2026.
 
-- основной engine target: **Godot 4.5+**;
-- UI source of truth: `project.godot` → `scenes/main.tscn` → `scripts/main.gd`;
+## Итоговое решение
+
+KS3 теперь является чистым native Godot 4.5+ проектом:
+
+- engine target: Godot 4.5+;
+- runtime: `project.godot` → `scenes/main.tscn` → `scripts/main.gd`;
 - язык: GDScript;
 - networking target: `ENetMultiplayerPeer` + Godot high-level multiplayer API;
 - future dedicated server: headless Godot export;
-- renderer baseline: Compatibility для быстрого UI smoke-test, Forward+ для desktop visual target;
-- Blender pipeline: glTF/FBX import в Godot вместо engine-specific Unreal import;
-- web React/Vite сохранён только как temporary browser reference, чтобы не потерять уже собранный UX-preview.
+- renderer baseline: Compatibility для лёгкого UI smoke-test, Forward+ для desktop visual target;
+- Blender pipeline: glTF/FBX import в Godot;
+- все preview assets перенесены в `assets/`.
 
-## Почему не удалён `src/`
+## Что удалено
 
-Web preview был готовым UX reference и удобен для review без установленного Godot. Он больше не считается игровым runtime, но помогает сравнивать состояния UI во время миграции. После того как native Godot scenes будут выделены в отдельные reusable `.tscn`, `src/` можно удалить отдельным cleanup commit.
+Удалены все browser-specific файлы и зависимости:
 
-## Godot vertical slice
+- `src/`;
+- `index.html`;
+- `package.json` и `package-lock.json`;
+- `vite.config.js`;
+- `public/`;
+- локальные `node_modules/` и `dist/`.
 
-В native проекте уже есть:
+В репозитории больше нет web runtime, npm build chain или browser fallback.
+
+## Native Godot vertical slice
 
 - Overview;
 - Matchmaking и queue state;
@@ -32,7 +41,7 @@ Web preview был готовым UX reference и удобен для review б�
 - Profile;
 - Settings dialog.
 
-Сцена строится через стандартные `Control`, `PanelContainer`, `MarginContainer`, `VBoxContainer`, `HBoxContainer`, `GridContainer`, `TextureRect`, `ProgressBar` и `AcceptDialog`. Это намеренно простая база: она может быть разнесена в `.tscn` scenes после UX lock, не меняя продуктовый contract.
+Сцена строится через стандартные `Control`, `PanelContainer`, `MarginContainer`, `VBoxContainer`, `HBoxContainer`, `GridContainer`, `TextureRect`, `ProgressBar` и `AcceptDialog`. Это простая production-ready база: после UX lock экраны можно разнести в reusable `.tscn`, не меняя продуктовый contract.
 
 ## Следующий технический коммит
 
@@ -44,6 +53,6 @@ Web preview был готовым UX reference и удобен для review б�
 6. запустить headless export на Linux и Windows client smoke;
 7. только после этого подключать backend queue / identity.
 
-## Риск и честная граница
+## Честная граница проверки
 
-Godot project files созданы под 4.5+ и не зависят от Unreal. В текущем sandbox бинарник Godot отсутствует, поэтому финальный engine parse / F6 smoke-test должен быть выполнен на машине с Godot 4.5+ и export templates. Это не скрывается: README содержит точные команды проверки.
+В текущем sandbox бинарник Godot отсутствует, поэтому финальный engine parse / F6 smoke-test должен быть выполнен на машине с Godot 4.5+ и export templates. README содержит точные команды проверки.

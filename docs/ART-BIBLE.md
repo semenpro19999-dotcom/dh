@@ -177,8 +177,8 @@ Prompts are starting points, not final production assets. Remove logos, text, re
 
 ## 7. Current prototype assets
 
-- `public/assets/ks3-riftfall-hero.jpg` — generated wide hero background;
-- `public/assets/fen-9-cobalt.jpg` — generated rifle preview;
-- `public/assets/vanta-edge.jpg` — generated melee preview.
+- `assets/ks3-riftfall-hero.jpg` — generated wide hero background;
+- `assets/fen-9-cobalt.jpg` — generated rifle preview;
+- `assets/vanta-edge.jpg` — generated melee preview.
 
 They are presentation seeds, not final game-ready PBR maps. They must be replaced by modeled / UV’d / textured source assets in the Blender/UE pipeline.

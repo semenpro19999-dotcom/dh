@@ -1,14 +1,9 @@
-node_modules/
-dist/
-.vite/
 .godot/
 .DS_Store
 *.blend1
 *.tmp
-# Large source assets / cooked builds should use approved LFS or artifact storage.
+# Large source assets / exports should use approved LFS or artifact storage.
 content/**/*.fbx
 content/**/*.glb
-content/**/*.uasset
-content/**/*.umap
 content/**/*.wav
 content/**/*.exr

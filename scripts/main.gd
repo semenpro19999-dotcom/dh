@@ -307,7 +307,7 @@ func hero_panel() -> PanelContainer:
 	layer.custom_minimum_size = Vector2(0, 410)
 	hero.add_child(layer)
 	var image := TextureRect.new()
-	image.texture = load("res://public/assets/ks3-riftfall-hero.jpg")
+	image.texture = load("res://assets/ks3-riftfall-hero.jpg")
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -364,7 +364,7 @@ func build_matchmaking() -> void:
 	var map := make_card("CURRENT MAP // 01", "RIFT / FALL", 390)
 	map[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var map_image := TextureRect.new()
-	map_image.texture = load("res://public/assets/ks3-riftfall-hero.jpg")
+	map_image.texture = load("res://assets/ks3-riftfall-hero.jpg")
 	map_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	map_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	map_image.custom_minimum_size = Vector2(0, 200)
@@ -406,7 +406,7 @@ func build_inventory() -> void:
 	var banner := make_card("EQUIPPED LOADOUT // RANKED", "FEN-9  //  COBALT CIRCUIT", 230)
 	banner[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var weapon := TextureRect.new()
-	weapon.texture = load("res://public/assets/fen-9-cobalt.jpg")
+	weapon.texture = load("res://assets/fen-9-cobalt.jpg")
 	weapon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	weapon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	weapon.custom_minimum_size = Vector2(0, 130)
@@ -427,8 +427,8 @@ func build_inventory() -> void:
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_host.add_child(grid)
 	var data := [
-		["FEN-9", "COBALT CIRCUIT", "MYTHIC", "/assets/fen-9-cobalt.jpg", C_CYAN],
-		["VANTA EDGE", "NULL", "IMMORTAL", "/assets/vanta-edge.jpg", C_PURPLE],
+		["FEN-9", "COBALT CIRCUIT", "MYTHIC", "assets/fen-9-cobalt.jpg", C_CYAN],
+		["VANTA EDGE", "NULL", "IMMORTAL", "assets/vanta-edge.jpg", C_PURPLE],
 		["KESTREL", "FIELD ISSUE", "RARE", "", C_AMBER],
 		["M-7", "SIGNAL BURN", "UNCOMMON", "", C_GREEN],
 		["AEGIS", "COLD FORGE", "MYTHIC", "", C_CYAN],
@@ -447,7 +447,7 @@ func item_card(item: Array) -> PanelContainer:
 	box.add_child(make_label(item[2] + "                         " + item[0], 8, item[4]))
 	if item[3] != "":
 		var image := TextureRect.new()
-		image.texture = load("res://public" + item[3])
+		image.texture = load("res://" + item[3])
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		image.custom_minimum_size = Vector2(0, 135)
@@ -471,7 +471,7 @@ func build_case_lab() -> void:
 	var open := ui_button("OPEN CASE  →", Callable(open_case), true)
 	featured[1].add_child(open)
 	var art := TextureRect.new()
-	art.texture = load("res://public/assets/fen-9-cobalt.jpg")
+	art.texture = load("res://assets/fen-9-cobalt.jpg")
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	art.custom_minimum_size = Vector2(0, 130)
@@ -480,11 +480,11 @@ func build_case_lab() -> void:
 	page_host.add_child(featured[0])
 	var grid := HBoxContainer.new()
 	grid.add_theme_constant_override("separation", 14)
-	for item in [["RIFT // AFTERGLOW", "SEASONAL CASE", C_CYAN, "/assets/fen-9-cobalt.jpg"], ["BLACKSITE // 01", "STANDARD CASE", C_PURPLE, "/assets/vanta-edge.jpg"], ["SIGNAL // GOLD", "EVENT CASE", C_AMBER, "/assets/fen-9-cobalt.jpg"]]:
+	for item in [["RIFT // AFTERGLOW", "SEASONAL CASE", C_CYAN, "assets/fen-9-cobalt.jpg"], ["BLACKSITE // 01", "STANDARD CASE", C_PURPLE, "assets/vanta-edge.jpg"], ["SIGNAL // GOLD", "EVENT CASE", C_AMBER, "assets/fen-9-cobalt.jpg"]]:
 		var c := make_card(item[1], item[0], 230)
 		c[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var image := TextureRect.new()
-		image.texture = load("res://public" + item[3])
+		image.texture = load("res://" + item[3])
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		image.custom_minimum_size = Vector2(0, 120)
@@ -577,7 +577,7 @@ func build_field_hud() -> void:
 	var layer := Control.new()
 	stage.add_child(layer)
 	var image := TextureRect.new()
-	image.texture = load("res://public/assets/ks3-riftfall-hero.jpg")
+	image.texture = load("res://assets/ks3-riftfall-hero.jpg")
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	image.modulate = Color(0.32, 0.55, 0.56, 0.8)
@@ -643,7 +643,7 @@ func build_profile() -> void:
 	page_host.add_child(make_label("RECENT LOADOUT", 9, C_CYAN))
 	var items := HBoxContainer.new()
 	items.add_theme_constant_override("separation", 13)
-	for data in [["FEN-9", "/assets/fen-9-cobalt.jpg", C_CYAN], ["VANTA EDGE", "/assets/vanta-edge.jpg", C_PURPLE], ["KESTREL", "", C_AMBER], ["AEGIS", "", C_GREEN]]:
+	for data in [["FEN-9", "assets/fen-9-cobalt.jpg", C_CYAN], ["VANTA EDGE", "assets/vanta-edge.jpg", C_PURPLE], ["KESTREL", "", C_AMBER], ["AEGIS", "", C_GREEN]]:
 		var c := item_card([data[0], "SIGNATURE ITEM", "MYTHIC", data[1], data[2]])
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		items.add_child(c)

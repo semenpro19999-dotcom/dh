@@ -1,6 +1,6 @@
 # KS3 content workspace
 
-This is the production-shaped placeholder for the Blender → Unreal content pipeline described in `docs/3D_PIPELINE.md`.
+This is the production-shaped placeholder for the Blender → Godot 4.5+ content pipeline described in `docs/3D_PIPELINE.md`.
 
 - `models/` — high/low mesh sources and hard-surface assets
 - `textures/` — PBR maps, masks and decals

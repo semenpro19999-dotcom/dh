@@ -264,7 +264,7 @@ Custom host settings: round count, weather seed, breakables on/off, buy time, ch
 
 ### Main menu / Command Center
 
-Реализован в `src/main.jsx` как `Overview`. Структура:
+Реализован в `scripts/main.gd` как native Godot screen `Overview`. Структура:
 
 ```text
 ┌ KS3 / COMMAND CENTER ┐ ┌ COMMAND CENTER / OVERVIEW ─ EU NORTH ─ profile ┐
