@@ -146,7 +146,13 @@ func build_player() -> void:
 	camera.add_child(weapon_ray)
 	weapon_ray.add_exception(player)
 
-func create_box(node_name: String, position: Vector3, box_size: Vector3, color: Color, glowing := false) -> StaticBody3D:
+func create_box(
+	node_name: String,
+	position: Vector3,
+	box_size: Vector3,
+	color: Color,
+	glowing := false
+) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = node_name
 	body.position = position
@@ -350,8 +356,11 @@ func ui_button(text: String, callback: Callable, accent: bool) -> Button:
 	button.add_theme_font_size_override("font_size", 9)
 	button.add_theme_color_override("font_color", C_BG if accent else C_MUTED)
 	button.add_theme_color_override("font_hover_color", C_BG if accent else C_CYAN)
-	button.add_theme_stylebox_override("normal", panel_style(C_CYAN if accent else Color("#101B21"), C_CYAN if accent else C_LINE))
-	button.add_theme_stylebox_override("hover", panel_style(Color("#9AF0EA") if accent else Color("#152A30"), C_CYAN))
+	var normal_fill := C_CYAN if accent else Color("#101B21")
+	var hover_fill := Color("#9AF0EA") if accent else Color("#152A30")
+	var normal_border := C_CYAN if accent else C_LINE
+	button.add_theme_stylebox_override("normal", panel_style(normal_fill, normal_border))
+	button.add_theme_stylebox_override("hover", panel_style(hover_fill, C_CYAN))
 	if callback.is_valid():
 		button.pressed.connect(callback)
 	return button
