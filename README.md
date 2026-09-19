@@ -1,4 +1,4 @@
-# KS3 // Godot Command Center
+# KS3 // Командный центр Godot
 
 KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Основной runtime проекта — **Godot 4.5+**: GDScript, native `.tscn` scenes, ENet и headless-server план.
 
@@ -8,16 +8,16 @@ KS3 — производственный концепт и интерактив�
 
 - `project.godot` с Godot 4.5+ configuration, фиксированным окном **1440×900**, 128 physics ticks и Compatibility renderer для лёгкого запуска;
 - `scenes/main.tscn` — стартовая сцена;
-- `scripts/main.gd` — native Control UI без web-слоя;
-- Главное меню / Operations Overview с hero-сценой `Rift / Fall`, сезонным статусом, ранговым прогрессом, операциями и fireteam;
-- Matchmaking: Ranked 5v5 / Casual / Wingman / Custom Lobby, карта, регион, timer и post-match dialog;
-- Inventory / loadout с weapon previews;
-- Case Lab с odds, pity protocol и reward dialog;
-- Progression с rank ladder и season rewards;
-- Training / AI Coach concept;
-- Field HUD с radar, killfeed, HP, armor, ammo, wallet, Echo и spectator state;
-- Profile, achievements и settings dialog;
-- оригинальные preview assets в `assets/`.
+- `scripts/main.gd` — нативный интерфейс Control без web-слоя;
+- Главное меню / обзор операций с hero-сценой `Разлом / Падение`, сезонным статусом, ранговым прогрессом, операциями и отрядом;
+- Поиск матча: рейтинг 5×5 / казуальный режим / дуэль / своё лобби, карта, регион, таймер и окно итогов;
+- Снаряжение с предпросмотром оружия;
+- Лаборатория кейсов с шансами, защитой от невезения и окном награды;
+- Прогресс с лестницей рангов и сезонными наградами;
+- Тренировка и концепция ИИ-тренера;
+- Полевой интерфейс с радаром, лентой устранений, здоровьем, бронёй, боезапасом, кошельком, Эхом и режимом наблюдателя;
+- Профиль, достижения и окно настроек;
+- оригинальные демонстрационные материалы в `assets/`.
 
 ## Запуск Godot 4.5+
 
@@ -59,6 +59,7 @@ docs/3D_PIPELINE.md       # Blender → Godot pipeline
 docs/REFERENCES.md        # Godot / Blender / art / audio sources
 docs/ROADMAP.md           # MVP → Alpha → Beta → Release
 docs/GODOT_MIGRATION.md   # решения Godot-перехода и следующий план
+docs/UI_LAYOUT.md          # русская схема интерфейса и правила viewport
 ```
 
 ## Техническое решение
