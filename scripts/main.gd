@@ -236,7 +236,7 @@ func show_page(id: String) -> void:
 	page_title.text = "COMMAND CENTER / " + pages.get(id, "OVERVIEW").to_upper()
 	for key in nav_buttons:
 		var button: Button = nav_buttons[key]
-		var active := key == id
+		var active: bool = String(key) == id
 		button.add_theme_color_override("font_color", C_CYAN if active else C_MUTED)
 		button.add_theme_stylebox_override("normal", panel_style(Color("#12272B") if active else Color(0, 0, 0, 0), C_CYAN if active else Color(0, 0, 0, 0)))
 	for child in page_host.get_children():
