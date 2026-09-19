@@ -740,7 +740,9 @@ func make_label(text: String, size: int, color: Color) -> Label:
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Keep labels intrinsic-width by default. Autowrap in every label made HBox/VBox
+	# children collapse to a few pixels, rendering the UI as one letter per line.
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	return label
 
 func ui_button(text: String, callback: Callable, accent: bool) -> Button:
