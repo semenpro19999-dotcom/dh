@@ -61,7 +61,7 @@ These pages are mood / craft references, not direct copying targets.
 
 ## 5. Sandstone map research
 
-Подробная подборка из 30 картографических, архитектурных и material references находится в [`docs/SANDSTONE_REFERENCES.md`](SANDSTONE_REFERENCES.md). Для текущего blockout из неё зафиксированы три маршрута — западный рынок, центральный двор и восточная цитадель — плюс арочные ворота, башни, навесы, ступени и две контрастные objective-зоны.
+Подробная подборка исходных moodboard references находится в [`docs/SANDSTONE_REFERENCES.md`](SANDSTONE_REFERENCES.md). Текущий playable blockout больше не копирует этот layout: runtime-карта — собственный `SALTWORKS`, описанный в [`docs/MAP_SALTWORKS.md`](MAP_SALTWORKS.md).
 
 ## 6. Main menu / UX references
 

@@ -38,9 +38,10 @@ Godot 4.5 renderer documentation описывает Forward+ как desktop-orie
 project.godot                 # Godot 4.5+ project, 128 physics ticks, renderer profile
 scenes/main.tscn              # root Control scene for command center
 scenes/match.tscn             # root Node3D scene for local match
-scripts/main.gd               # redesigned native UI, Sandstone briefing and shell
-scripts/match.gd              # 3D player, camera, Sandstone arena and HUD
-scripts/arsenal.gd            # shared 30-weapon / 10-knife catalogue
+scripts/main.gd               # redesigned native UI, SALTWORKS briefing and shell
+scripts/match.gd               # 3D player, camera, SALTWORKS arena and HUD
+scripts/arsenal.gd             # shared 30-weapon / 10-knife catalogue
+scripts/case_system.gd         # local Standard case odds, pity and inventory
 scripts/network_manager.gd    # next P0: ENet host / client lifecycle
 scripts/match_state.gd        # next P0: authoritative round model
 scenes/ui/                    # reusable HUD / menu scenes after extraction
@@ -67,6 +68,8 @@ docs/ASSET_LICENSES.md # provenance and license ledger for imported binary asset
 - выстрелы ботов используют тот же tracer, отдельный тихий shot-микс и line-of-sight через physics ray; combat AI использует детерминированную FSM `PATROL → ATTACK → SEARCH/RETREAT`, память последней позиции игрока, реакцию на шум выстрела, смену strafing-направления и ограниченную точность вместо читерского 100% aim; три бота получают оружие из общего каталога;
 - `assets/audio/` содержит подключённые из интернета CC0 OGG: shot, bot shot, hit, kill, reload click, weapon switch, knife, jump, land, footsteps, bomb plant/defuse, explosion и ambient loop; provenance зафиксирован в `docs/ASSET_LICENSES.md`;
 - `assets/models/kenney/` содержит CC0 GLB-модели игроков, огнестрельного оружия и четырёх вариантов ножей; 30 слотов каталога используют модели по кругу;
+- текущий playable layout — новая процедурная карта `SALTWORKS`: Loading Yard, Brine Core, Refinery Control, silos, tanks, catwalk и warehouse; подробная схема в `docs/MAP_SALTWORKS.md`;
+- `scripts/case_system.gd` реализует локальный case prototype с видимыми odds, token ledger, inventory drop и pity counter; production RNG должен быть перенесён в server Cases service;
 - bots имеют отдельный `CapsuleShape3D` hitbox и health state; попадание по `CharacterBody3D` больше не ограничено группой статических целей;
 - матч поддерживает Shift-бег, Space-прыжок, F-плант на двух objective sites с 2,5-секундной установкой, 40-секундным таймером и 3-секундным обезвреживанием;
 - центральный action/status popup удалён: состояние бомбы и матча остаётся в компактном HUD, без перекрытия crosshair;

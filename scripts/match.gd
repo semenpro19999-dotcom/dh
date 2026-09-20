@@ -214,7 +214,13 @@ func _input(event: InputEvent) -> void:
 			select_weapon(active_weapon_index + 1)
 		elif event.keycode == KEY_R:
 			reload_weapon()
-		elif event.keycode >= KEY_1 and event.keycode <= KEY_9:
+		elif event.keycode == KEY_1:
+			select_weapon(find_weapon_index("rift_smg"))
+		elif event.keycode == KEY_2:
+			select_weapon(find_weapon_index("awm"))
+		elif event.keycode == KEY_3:
+			select_weapon(find_weapon_index("vanta_edge"))
+		elif event.keycode >= KEY_4 and event.keycode <= KEY_9:
 			select_weapon(event.keycode - KEY_1)
 		elif event.keycode == KEY_0:
 			select_weapon(9)
@@ -249,83 +255,103 @@ func build_world() -> void:
 	sun.shadow_enabled = true
 	add_child(sun)
 
-	create_box("SandstoneFloor", Vector3(0.0, -0.25, 0.0), Vector3(44.0, 0.5, 32.0), C_SAND_FLOOR)
-	create_box("NorthRampart", Vector3(0.0, 2.5, -16.0), Vector3(44.0, 5.0, 0.8), C_SAND_DARK)
-	create_box("SouthRampart", Vector3(0.0, 2.5, 16.0), Vector3(44.0, 5.0, 0.8), C_SAND_DARK)
-	create_box("WestRampart", Vector3(-22.0, 2.5, 0.0), Vector3(0.8, 5.0, 32.0), C_SAND_DARK)
-	create_box("EastRampart", Vector3(22.0, 2.5, 0.0), Vector3(0.8, 5.0, 32.0), C_SAND_DARK)
+	create_box("SaltworksFloor", Vector3(0.0, -0.25, 0.0), Vector3(44.0, 0.5, 32.0), C_SAND_FLOOR)
+	create_box("NorthDike", Vector3(0.0, 2.5, -16.0), Vector3(44.0, 5.0, 0.8), C_SAND_DARK)
+	create_box("SouthDike", Vector3(0.0, 2.5, 16.0), Vector3(44.0, 5.0, 0.8), C_SAND_DARK)
+	create_box("WestDike", Vector3(-22.0, 2.5, 0.0), Vector3(0.8, 5.0, 32.0), C_SAND_DARK)
+	create_box("EastDike", Vector3(22.0, 2.5, 0.0), Vector3(0.8, 5.0, 32.0), C_SAND_DARK)
 
-	create_archway("NorthGate", Vector3(0.0, 0.0, -15.4), 6.0, 5.0, 1.3, C_SAND_LIGHT)
-	create_archway("SouthGate", Vector3(0.0, 0.0, 15.4), 5.0, 4.2, 1.3, C_SAND_LIGHT)
-	create_archway("WestGate", Vector3(-21.4, 0.0, 0.0), 5.0, 4.2, 1.3, C_SAND_LIGHT, 90.0)
-	create_archway("EastGate", Vector3(21.4, 0.0, -2.0), 5.0, 4.2, 1.3, C_SAND_LIGHT, 90.0)
+	create_archway("NorthServiceGate", Vector3(0.0, 0.0, -15.4), 5.0, 4.5, 1.3, C_SAND_LIGHT)
+	create_archway("SouthServiceGate", Vector3(0.0, 0.0, 15.4), 4.0, 4.0, 1.3, C_SAND_LIGHT)
+	create_archway("WestServiceGate", Vector3(-21.4, 0.0, 0.0), 4.0, 4.0, 1.3, C_SAND_LIGHT, 90.0)
+	create_archway("EastServiceGate", Vector3(21.4, 0.0, 0.0), 4.0, 4.0, 1.3, C_SAND_LIGHT, 90.0)
 
-	build_market_quarter()
-	build_central_courtyard()
-	build_east_citadel()
-	build_south_alleys()
-	build_watchtowers()
-	create_objective_zone("ObjectiveA", Vector3(-13.0, 0.03, -6.0), C_TEAL)
-	create_objective_zone("ObjectiveB", Vector3(13.0, 0.03, 6.0), C_AMBER)
+	build_saltworks_west()
+	build_saltworks_center()
+	build_saltworks_east()
+	build_saltworks_south()
+	create_objective_zone("ObjectiveA", Vector3(-14.0, 0.03, -7.0), C_TEAL)
+	create_objective_zone("ObjectiveB", Vector3(14.0, 0.03, 7.0), C_AMBER)
 	bomb_sites.clear()
 	bomb_sites.append(get_node("ObjectiveA") as StaticBody3D)
 	bomb_sites.append(get_node("ObjectiveB") as StaticBody3D)
 
-	create_target("TargetA", Vector3(-18.0, 1.0, 4.0))
-	create_target("TargetB", Vector3(13.0, 1.0, 8.0))
-	create_target("TargetC", Vector3(4.0, 1.0, -11.0))
+	create_target("TargetA", Vector3(-18.0, 1.0, 6.0))
+	create_target("TargetB", Vector3(16.0, 1.0, -7.0))
+	create_target("TargetC", Vector3(0.0, 1.0, 11.0))
 
 
-func build_market_quarter() -> void:
-	create_box("MarketHouseWestA", Vector3(-16.5, 2.4, -9.0), Vector3(7.0, 4.8, 3.0), C_SAND)
-	create_box("MarketHouseWestB", Vector3(-16.5, 2.4, 2.0), Vector3(7.0, 4.8, 3.0), C_SAND)
-	create_box("MarketHouseSouth", Vector3(-11.0, 2.4, 10.5), Vector3(11.0, 4.8, 3.0), C_SAND)
-	create_archway("MarketNorthArc", Vector3(-16.0, 0.0, -6.7), 3.0, 3.8, 1.0, C_SAND_LIGHT, 90.0)
-	create_archway("MarketSouthArc", Vector3(-16.0, 0.0, 5.5), 3.0, 3.8, 1.0, C_SAND_LIGHT, 90.0)
-	create_market_stall(Vector3(-10.5, 0.0, -5.0), C_CLOTH)
-	create_market_stall(Vector3(-8.5, 0.0, 2.5), C_AMBER)
-	create_box("MarketCover", Vector3(-7.0, 0.9, -1.0), Vector3(3.5, 1.8, 0.8), C_SAND_DARK)
-	create_box("MarketBench", Vector3(-14.0, 0.55, 7.0), Vector3(3.0, 1.1, 0.7), C_WOOD)
+func build_saltworks_west() -> void:
+	create_box("WestLoadingHall", Vector3(-16.0, 2.6, -11.0), Vector3(8.0, 5.2, 3.0), C_SAND)
+	create_box("WestSaltStore", Vector3(-16.0, 2.4, 8.5), Vector3(8.0, 4.8, 3.0), C_SAND_DARK)
+	create_box("WestLoadingCover", Vector3(-9.5, 0.9, -7.0), Vector3(3.6, 1.8, 1.0), C_WOOD)
+	create_box("WestLoadingCoverTwo", Vector3(-8.5, 1.1, 4.0), Vector3(2.2, 2.2, 1.4), C_SAND_LIGHT)
+	create_cylinder("WestSiloA", Vector3(-14.0, 2.0, -4.0), 1.55, 4.0, C_SAND_LIGHT)
+	create_cylinder("WestSiloB", Vector3(-18.0, 1.5, -4.0), 1.25, 3.0, C_SAND)
+	create_box("WestConveyor", Vector3(-11.0, 3.7, -4.0), Vector3(6.0, 0.35, 0.45), C_CLOTH, true)
+	create_archway("WestProcessArch", Vector3(-6.0, 0.0, 0.0), 4.0, 3.8, 1.0, C_SAND_LIGHT, 90.0)
 
 
-func build_central_courtyard() -> void:
-	create_box("CourtyardNorthWing", Vector3(7.0, 2.4, -13.0), Vector3(12.0, 4.8, 2.5), C_SAND)
-	create_box("CourtyardWestWing", Vector3(-3.0, 1.2, -8.8), Vector3(0.8, 2.4, 6.0), C_SAND_LIGHT)
-	create_box("CourtyardSouthWall", Vector3(3.0, 1.0, 7.0), Vector3(15.0, 2.0, 0.8), C_SAND_DARK)
-	create_archway("CourtyardArch", Vector3(3.0, 0.0, 7.0), 4.5, 4.2, 1.0, C_SAND_LIGHT)
-	create_box("CourtyardPlinth", Vector3(3.0, 0.25, -1.0), Vector3(5.0, 0.5, 3.5), C_SAND_LIGHT)
-	create_box("CourtyardPool", Vector3(3.0, 0.54, -1.0), Vector3(3.2, 0.08, 1.7), C_TEAL, true)
-	create_box("CourtyardCover", Vector3(8.0, 1.0, -5.0), Vector3(2.5, 2.0, 1.0), C_SAND_DARK)
-	create_box("CourtyardCoverTwo", Vector3(8.0, 1.0, 2.5), Vector3(1.0, 2.0, 3.2), C_SAND_DARK)
-	create_banner(Vector3(0.0, 3.7, -12.2), C_CLOTH)
+func build_saltworks_center() -> void:
+	create_box("CentralControlBlock", Vector3(0.0, 1.5, 0.0), Vector3(4.0, 3.0, 4.0), C_SAND_DARK)
+	create_cylinder("CentralBrineTank", Vector3(0.0, 2.8, -1.0), 2.0, 5.6, C_SAND_LIGHT, true)
+	create_box("CentralTankRailNorth", Vector3(0.0, 1.15, -5.2), Vector3(9.0, 2.3, 0.6), C_SAND)
+	create_box("CentralTankRailSouth", Vector3(0.0, 1.15, 5.2), Vector3(9.0, 2.3, 0.6), C_SAND)
+	create_box("CentralPipeNorth", Vector3(-5.5, 3.5, -8.0), Vector3(0.7, 0.7, 7.0), C_CLOTH, true)
+	create_box("CentralPipeSouth", Vector3(5.5, 3.5, 8.0), Vector3(0.7, 0.7, 7.0), C_AMBER, true)
+	create_archway("CenterWestLane", Vector3(-5.0, 0.0, 0.0), 3.2, 3.5, 1.0, C_SAND_LIGHT, 90.0)
+	create_archway("CenterEastLane", Vector3(5.0, 0.0, 0.0), 3.2, 3.5, 1.0, C_SAND_LIGHT, 90.0)
+	create_banner(Vector3(0.0, 5.2, 0.0), C_TEAL)
 
 
-func build_east_citadel() -> void:
-	create_box("CitadelPlatform", Vector3(14.0, 0.55, -3.5), Vector3(10.0, 1.1, 8.0), C_SAND_DARK)
-	create_box("CitadelKeep", Vector3(15.0, 3.2, -3.5), Vector3(5.5, 5.3, 3.5), C_SAND)
-	create_archway("CitadelDoor", Vector3(11.9, 0.0, -3.5), 3.0, 3.8, 1.0, C_SAND_LIGHT, 90.0)
-	create_steps(
-		"CitadelSteps", Vector3(8.5, 0.0, 3.0), Vector3(0.0, 0.0, -1.0), 7, 0.28, 0.55, 3.4
-	)
-	create_box("CitadelBalcony", Vector3(18.0, 3.8, -1.0), Vector3(0.8, 0.7, 3.0), C_SAND_LIGHT)
-	create_box("CitadelCover", Vector3(10.0, 1.0, 8.5), Vector3(3.0, 2.0, 0.9), C_SAND_DARK)
-	create_banner(Vector3(14.0, 6.0, -3.5), C_TEAL)
+func build_saltworks_east() -> void:
+	create_box("EastRefineryHall", Vector3(16.0, 2.8, -10.0), Vector3(8.0, 5.6, 3.0), C_SAND)
+	create_box("EastControlRoom", Vector3(16.0, 2.2, 10.0), Vector3(8.0, 4.4, 3.0), C_SAND_DARK)
+	create_cylinder("EastRefineryTankA", Vector3(12.5, 2.2, -4.0), 1.7, 4.4, C_CLOTH, true)
+	create_cylinder("EastRefineryTankB", Vector3(17.0, 2.2, -4.0), 1.7, 4.4, C_AMBER, true)
+	create_box("EastCatwalk", Vector3(15.0, 1.0, 2.0), Vector3(8.0, 2.0, 0.9), C_SAND_LIGHT)
+	create_box("EastCatwalkRail", Vector3(15.0, 2.0, 2.0), Vector3(8.0, 0.25, 0.25), C_CLOTH, true)
+	create_archway("EastRefineryArch", Vector3(9.0, 0.0, -1.0), 4.0, 4.0, 1.0, C_SAND_LIGHT, 90.0)
 
 
-func build_south_alleys() -> void:
-	create_box("SouthAlleyEast", Vector3(14.5, 2.0, 11.0), Vector3(7.0, 4.0, 2.2), C_SAND)
-	create_box("SouthAlleyWall", Vector3(5.0, 1.4, 11.0), Vector3(7.0, 2.8, 0.8), C_SAND_LIGHT)
-	create_archway("SouthAlleyArc", Vector3(8.8, 0.0, 11.0), 3.0, 3.6, 1.0, C_SAND_LIGHT, 90.0)
-	create_market_stall(Vector3(3.0, 0.0, 12.5), C_CLOTH)
-	create_box("SouthCrate", Vector3(-1.0, 0.65, 11.5), Vector3(1.5, 1.3, 1.5), C_WOOD)
-	create_box("SouthCrateTwo", Vector3(1.0, 0.4, 9.6), Vector3(1.2, 0.8, 1.2), C_WOOD)
+func build_saltworks_south() -> void:
+	create_box("SouthWarehouse", Vector3(3.0, 2.5, 13.0), Vector3(12.0, 5.0, 2.4), C_SAND)
+	create_box("SouthDockWall", Vector3(-10.0, 1.4, 12.0), Vector3(8.0, 2.8, 0.9), C_SAND_LIGHT)
+	create_box("SouthDockCrateA", Vector3(-4.0, 0.75, 8.6), Vector3(1.6, 1.5, 1.6), C_WOOD)
+	create_box("SouthDockCrateB", Vector3(-1.5, 0.45, 7.5), Vector3(1.0, 0.9, 1.0), C_WOOD)
+	create_box("SouthPipeRack", Vector3(7.0, 3.0, 8.5), Vector3(0.7, 6.0, 5.0), C_CLOTH, true)
+	create_archway("SouthWarehouseArch", Vector3(9.5, 0.0, 5.0), 3.5, 3.8, 1.0, C_SAND_LIGHT, 90.0)
 
 
-func build_watchtowers() -> void:
-	create_box("WestTower", Vector3(-19.0, 3.0, -13.0), Vector3(4.0, 6.0, 4.0), C_SAND_DARK)
-	create_box("WestTowerTop", Vector3(-19.0, 6.2, -13.0), Vector3(4.8, 0.5, 4.8), C_SAND_LIGHT)
-	create_box("EastTower", Vector3(19.0, 3.0, 13.0), Vector3(4.0, 6.0, 4.0), C_SAND_DARK)
-	create_box("EastTowerTop", Vector3(19.0, 6.2, 13.0), Vector3(4.8, 0.5, 4.8), C_SAND_LIGHT)
+func create_cylinder(
+	node_name: String,
+	cylinder_position: Vector3,
+	radius: float,
+	height: float,
+	color: Color,
+	glowing: bool = false
+) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = node_name
+	body.position = cylinder_position
+	body.collision_layer = 1
+	body.collision_mask = 1
+	add_child(body)
+	var mesh := MeshInstance3D.new()
+	var cylinder_mesh := CylinderMesh.new()
+	cylinder_mesh.top_radius = radius
+	cylinder_mesh.bottom_radius = radius
+	cylinder_mesh.height = height
+	mesh.mesh = cylinder_mesh
+	mesh.material_override = make_material(color, glowing)
+	body.add_child(mesh)
+	var collision := CollisionShape3D.new()
+	var cylinder_shape := CylinderShape3D.new()
+	cylinder_shape.radius = radius
+	cylinder_shape.height = height
+	collision.shape = cylinder_shape
+	body.add_child(collision)
+	return body
 
 
 func build_player() -> void:
@@ -376,21 +402,21 @@ func build_player() -> void:
 func build_bots() -> void:
 	create_bot(
 		"BotVanta",
-		Vector3(5.0, 1.0, -5.0),
+		Vector3(7.0, 1.0, -8.0),
 		1,
-		[Vector3(5.0, 1.0, -5.0), Vector3(9.0, 1.0, -2.0), Vector3(5.0, 1.0, 1.0)]
+		[Vector3(7.0, 1.0, -8.0), Vector3(5.0, 1.0, -2.0), Vector3(9.0, 1.0, 4.0)]
 	)
 	create_bot(
 		"BotRift",
-		Vector3(13.0, 1.0, 8.0),
+		Vector3(16.0, 1.0, 8.0),
 		6,
-		[Vector3(13.0, 1.0, 8.0), Vector3(16.0, 1.0, 4.0), Vector3(12.0, 1.0, 1.0)]
+		[Vector3(16.0, 1.0, 8.0), Vector3(12.0, 1.0, 5.0), Vector3(9.0, 1.0, 8.0)]
 	)
 	create_bot(
 		"BotTalon",
-		Vector3(-8.0, 1.0, -5.0),
+		Vector3(-9.0, 1.0, -4.0),
 		12,
-		[Vector3(-8.0, 1.0, -5.0), Vector3(-4.0, 1.0, -3.0), Vector3(-6.0, 1.0, -8.0)]
+		[Vector3(-9.0, 1.0, -4.0), Vector3(-6.0, 1.0, 1.0), Vector3(-9.0, 1.0, 6.0)]
 	)
 
 
@@ -472,6 +498,13 @@ func make_audio_player(stream: AudioStream, volume_db: float) -> AudioStreamPlay
 	return player_node
 
 
+func find_weapon_index(weapon_id: String) -> int:
+	for index in range(weapon_catalog.size()):
+		if str(weapon_catalog[index]["id"]) == weapon_id:
+			return index
+	return 0
+
+
 func select_weapon(index: int) -> void:
 	if weapon_catalog.is_empty():
 		return
@@ -494,9 +527,22 @@ func select_weapon(index: int) -> void:
 
 
 func get_weapon_scene(spec: Dictionary, catalog_index: int) -> PackedScene:
-	var models: Array = KNIFE_MODEL_SCENES if bool(spec["is_knife"]) else FIREARM_MODEL_SCENES
-	var model_index := maxi(catalog_index, 0) % models.size()
-	return models[model_index] as PackedScene
+	if bool(spec["is_knife"]):
+		var knife_index := maxi(catalog_index, 0) % KNIFE_MODEL_SCENES.size()
+		return KNIFE_MODEL_SCENES[knife_index] as PackedScene
+	var category := str(spec["category"])
+	var model_index := maxi(catalog_index, 0) % FIREARM_MODEL_SCENES.size()
+	if category == "СНАЙПЕРСКАЯ" or str(spec["id"]) == "awm":
+		model_index = 3
+	elif category == "ДРОБОВИК":
+		model_index = 2
+	elif category == "ПИСТОЛЕТ-ПУЛЕМЁТ":
+		model_index = 4
+	elif category == "ПИСТОЛЕТ":
+		model_index = 1
+	elif category == "МАРКСМАНСКАЯ":
+		model_index = 3
+	return FIREARM_MODEL_SCENES[model_index] as PackedScene
 
 
 func create_weapon_instance(spec: Dictionary, view_model: bool, catalog_index: int = -1) -> Node3D:
@@ -1083,44 +1129,6 @@ func create_archway(
 	)
 
 
-func create_steps(
-	step_name: String,
-	start: Vector3,
-	direction: Vector3,
-	count: int,
-	rise: float,
-	run: float,
-	width: float
-) -> void:
-	for index in range(count):
-		var step_height := rise * float(index + 1)
-		var step_position := start + direction * run * float(index)
-		step_position.y = step_height * 0.5
-		var step_size := Vector3(width, step_height, run)
-		if absf(direction.x) > 0.5:
-			step_size = Vector3(run, step_height, width)
-		create_box(step_name + str(index), step_position, step_size, C_SAND_LIGHT)
-
-
-func create_market_stall(stall_position: Vector3, cloth_color: Color) -> void:
-	create_box(
-		"StallCounter", stall_position + Vector3(0.0, 0.55, 0.0), Vector3(2.8, 1.1, 1.2), C_WOOD
-	)
-	create_box(
-		"StallRoof",
-		stall_position + Vector3(0.0, 2.4, 0.0),
-		Vector3(3.4, 0.18, 1.8),
-		cloth_color,
-		true
-	)
-	create_box(
-		"StallPostA", stall_position + Vector3(-1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
-	)
-	create_box(
-		"StallPostB", stall_position + Vector3(1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
-	)
-
-
 func create_banner(banner_position: Vector3, color: Color) -> void:
 	create_box(
 		"BannerPole", banner_position + Vector3(-0.8, -1.2, 0.0), Vector3(0.08, 2.8, 0.08), C_WOOD
@@ -1201,8 +1209,8 @@ func build_hud() -> void:
 	top_margin.add_child(top_row)
 	var title := VBoxContainer.new()
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_child(make_label("SANDSTONE // РАУНД 01", 12, C_AMBER))
-	title.add_child(make_label("ГОРОД ПЕСКА · ДВА ОБЪЕКТИВА · КОНТРОЛЬ ЦЕНТРА", 8, C_MUTED))
+	title.add_child(make_label("SALTWORKS // РАУНД 01", 12, C_AMBER))
+	title.add_child(make_label("СОЛЯНОЙ ЗАВОД · ТРИ ЛИНИИ · КОНТРОЛЬ ПОТОКА", 8, C_MUTED))
 	top_row.add_child(title)
 	timer_label = make_label("03:00", 18, C_TEXT)
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT

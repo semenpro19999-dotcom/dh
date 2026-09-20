@@ -57,4 +57,4 @@
 
 ## Решение для KS3
 
-В текущем Godot blockout используются не чужие модели, а процедурные `MeshInstance3D`/`StaticBody3D`: палитра жёлтого и красного песчаника, бирюзовые objective markers, market stalls, четыре арки, центральный courtyard, восточная цитадель со ступенями, две башни и три маршрута. Production-этап должен заменить блоки на Blender-модули и проверить все licenses до экспорта в `content/models`, `content/textures` и `content/maps`.
+Исторический Sandstone reference остаётся moodboard-слоем, но текущий Godot runtime layout полностью заменён на собственный procedural `SALTWORKS`; его Loading Yard, Brine Core, Refinery Control, tanks, catwalk и warehouse описаны в `docs/MAP_SALTWORKS.md`. Чужие модели/карты в runtime не импортируются. Production-этап должен заменить блоки SALTWORKS на Blender-модули и проверить все licenses до экспорта в `content/models`, `content/textures` и `content/maps`.

@@ -159,8 +159,8 @@ const WEAPONS: Array[Dictionary] = [
 		"color": Color("#83B8C7")
 	},
 	{
-		"id": "meridian",
-		"name": "MERIDIAN SR",
+		"id": "awm",
+		"name": "AWM SANDWRAITH",
 		"category": "СНАЙПЕРСКАЯ",
 		"damage": 100,
 		"magazine": 5,

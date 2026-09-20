@@ -364,6 +364,8 @@ BATTLEPASS XP +3,840   ITEM DROP RIFT CASE   [RETURN]
 
 `token check → signed open request → server result → roulette animation → item reveal → inventory write`. Рулетка — presentation, не источник RNG. Immortal получает amber flash, unique chime и reduced motion-safe fallback.
 
+В текущем локальном Godot prototype страница `КЕЙСЫ` реализует Standard case без сетевого authority: `scripts/case_system.gd` делает roll до UI update, показывает odds, pity, rarity, duplicate flag и последние item history entries, а состояние сохраняет в `user://ks3_cases.cfg`. Этот ledger не является production inventory; server Cases service должен заменить его до multiplayer launch.
+
 ### Получение и marketplace
 
 - **KS3 Credits:** match XP, challenges, seasonal track, drops;

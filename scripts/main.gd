@@ -3,6 +3,7 @@ extends Control  # gdlint: ignore=max-public-methods
 ## Главное действие всегда ведёт в 3D-матч, остальные pages открываются как overlays.
 
 const Arsenal = preload("res://scripts/arsenal.gd")
+const CaseSystem = preload("res://scripts/case_system.gd")
 const MENU_TEXTURE = preload("res://assets/sandstone-menu.jpg")
 const WEAPON_TEXTURE = preload("res://assets/fen-9-cobalt.jpg")
 
@@ -24,11 +25,18 @@ var toast: Label
 var toast_timer: Timer
 var nav_buttons: Dictionary = {}
 var current_page := "overview"
+var case_system: CaseSystem
+var case_tokens_label: Label
+var case_result_label: Label
+var case_pity_label: Label
+var case_inventory_box: VBoxContainer
+var case_open_button: Button
 
 var pages := {
 	"overview": "Операция",
 	"map": "Карта",
 	"loadout": "Арсенал",
+	"cases": "Кейсы",
 	"training": "Тренировка",
 	"profile": "Оператор",
 	"settings": "Настройки",
@@ -37,6 +45,7 @@ var pages := {
 
 func _ready() -> void:
 	get_window().min_size = Vector2i(800, 500)
+	case_system = CaseSystem.new()
 	build_shell()
 	show_page("overview")
 
@@ -104,7 +113,7 @@ func build_shell() -> void:
 	var footer_status := make_label("●  ПОЛЕ ГОТОВО", 8, C_TEAL)
 	footer_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer_row.add_child(footer_status)
-	footer_row.add_child(make_label("SANDSTONE  ·  44 × 32 м", 8, C_MUTED))
+	footer_row.add_child(make_label("SALTWORKS  ·  44 × 32 м", 8, C_MUTED))
 	footer_row.add_child(make_label("30 ОРУЖИЙ  /  10 НОЖЕЙ", 8, C_GOLD))
 	footer_row.add_child(make_label("BUILD 0.9.5", 8, C_DIM))
 
@@ -140,7 +149,7 @@ func build_header() -> void:
 
 	var brand := VBoxContainer.new()
 	brand.custom_minimum_size = Vector2(190, 0)
-	brand.add_child(make_label("SANDSTONE", 20, C_TEXT))
+	brand.add_child(make_label("SALTWORKS", 20, C_TEXT))
 	brand.add_child(make_label("KS3 // ОПЕРАЦИОННЫЙ БРЕФИНГ", 8, C_GOLD))
 	header.add_child(brand)
 
@@ -151,6 +160,7 @@ func build_header() -> void:
 	add_nav_button(nav, "overview", "ОПЕРАЦИЯ")
 	add_nav_button(nav, "map", "КАРТА")
 	add_nav_button(nav, "loadout", "АРСЕНАЛ")
+	add_nav_button(nav, "cases", "КЕЙСЫ")
 	add_nav_button(nav, "training", "ТРЕНИРОВКА")
 
 	var connection := VBoxContainer.new()
@@ -202,6 +212,8 @@ func _render_page(id: String) -> void:
 			build_map_page()
 		"loadout":
 			build_loadout()
+		"cases":
+			build_cases()
 		"training":
 			build_training()
 		"profile":
@@ -225,13 +237,11 @@ func build_overview() -> void:
 	command.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	command.add_theme_constant_override("separation", 10)
 	layout.add_child(command)
-	command.add_child(make_label("01  //  ОПЕРАЦИЯ SANDSTONE", 9, C_GOLD))
-	command.add_child(make_label("ГОРОД\nПЕСКА", 45, C_TEXT))
+	command.add_child(make_label("01  //  ОПЕРАЦИЯ SALTWORKS", 9, C_GOLD))
+	command.add_child(make_label("СОЛЯНОЙ\nЗАВОД", 45, C_TEXT))
 	command.add_child(
 		make_label(
-			"Три маршрута. Две точки контроля. Один шанс прочитать поле раньше противника.",
-			12,
-			C_MUTED
+			"Три линии подачи. Два объекта. Один шанс закрыть поток раньше противника.", 12, C_MUTED
 		)
 	)
 	command.add_child(make_label("ЛОКАЛЬНЫЙ 3D-PLAYABLE SLICE", 8, C_TEAL))
@@ -271,26 +281,27 @@ func build_overview() -> void:
 	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	briefing_box.add_child(hero)
 	briefing_box.add_child(
-		make_label("ЦЕНТРАЛЬНЫЙ ДВОР  ·  WEST MARKET  ·  EAST CITADEL", 9, C_GOLD)
+		make_label("LOADING YARD  ·  BRINE CORE  ·  REFINERY CONTROL", 9, C_GOLD)
 	)
-	briefing_box.add_child(make_label("ТЁПЛЫЙ КАМЕНЬ / ХОЛОДНЫЙ СИГНАЛ", 13, C_TEXT))
+	briefing_box.add_child(make_label("СОЛЬ / СТАЛЬ / ТЕПЛОТРАССА", 13, C_TEXT))
 
 	var intel_row := HBoxContainer.new()
 	intel_row.add_theme_constant_override("separation", 10)
 	intel.add_child(intel_row)
 	intel_row.add_child(info_card("АРСЕНАЛ", "30", "10 НОЖЕЙ", C_TEAL, "loadout"))
 	intel_row.add_child(info_card("ЦЕЛИ", "03", "A / B / TRAINING", C_GOLD, "map"))
+	intel_row.add_child(info_card("КЕЙСЫ", "03", "ТОКЕНЫ / ШАНСЫ", C_RED, "cases"))
 	intel_row.add_child(info_card("КАМЕРА", "360°", "MOUSE LOOK", C_GREEN, "training"))
 
 
 func build_map_page() -> void:
-	var title := make_card("SANDSTONE // БРИФИНГ", "КАРТА ЧИТАЕТСЯ ПО СИЛУЭТУ", 0)
+	var title := make_card("SALTWORKS // БРИФИНГ", "КАРТА ЧИТАЕТСЯ ПО ПОТОКУ", 0)
 	title[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title[1].add_child(
 		make_label(
 			(
-				"Арки открывают sightline, рынок сжимает дистанцию, "
-				+ "цитадель даёт высоту. Это собственный procedural blockout."
+				"Погрузочный двор ускоряет ротации, brine core ломает sightline, "
+				+ "refinery control даёт длинный retake. Это новый procedural blockout."
 			),
 			10,
 			C_MUTED
@@ -311,16 +322,16 @@ func build_map_page() -> void:
 	map_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_copy.add_theme_constant_override("separation", 7)
 	image_row.add_child(map_copy)
-	map_copy.add_child(make_label("SANDSTONE / 44 × 32 м", 19, C_TEXT))
-	map_copy.add_child(make_label("WEST MARKET\nCENTRAL COURTYARD\nEAST CITADEL", 12, C_GOLD))
-	(
-		map_copy
-		. add_child(
-			make_label(
-				"Тёплый sandstone, teal banners, вода как ориентир, две objective-зоны и три читаемых подхода.",
-				10,
-				C_MUTED
-			)
+	map_copy.add_child(make_label("SALTWORKS / 44 × 32 м", 19, C_TEXT))
+	map_copy.add_child(make_label("LOADING YARD\nBRINE CORE\nREFINERY CONTROL", 12, C_GOLD))
+	map_copy.add_child(
+		make_label(
+			(
+				"Погрузочные контейнеры, brine tanks, горячие трубы, "
+				+ "две objective-зоны и три читаемые линии атаки."
+			),
+			10,
+			C_MUTED
 		)
 	)
 	map_copy.add_child(ui_button("▶  ЗАПУСТИТЬ МАТЧ", Callable(launch_match), true))
@@ -329,9 +340,9 @@ func build_map_page() -> void:
 	routes.add_theme_constant_override("separation", 10)
 	page_root.add_child(routes)
 	for route in [
-		["A", "WEST MARKET", "Короткий бой / навесы / цель A", C_TEAL],
-		["B", "CENTRAL COURTYARD", "Открытый центр / вода / арка", C_GOLD],
-		["C", "EAST CITADEL", "Ступени / балкон / цель B", C_RED]
+		["A", "LOADING YARD", "Короткий бой / контейнеры / цель A", C_TEAL],
+		["B", "BRINE CORE", "Центральный tank / трубы / ротация", C_GOLD],
+		["C", "REFINERY CONTROL", "Длинный sightline / catwalk / цель B", C_RED]
 	]:
 		var card := make_card("МАРШРУТ " + route[0], route[1], 150)
 		card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -346,7 +357,7 @@ func build_loadout() -> void:
 		heading[1]
 		. add_child(
 			make_label(
-				"Каталог доступен в матче: Q/E пролистывают все 30 позиций, 1–0 открывают первые десять.",
+				"Q/E пролистывают все 30 позиций. 1 — скорострелка, 2 — AWM, 3 — нож; 4–0 — быстрые слоты.",
 				10,
 				C_MUTED
 			)
@@ -395,6 +406,119 @@ func build_training() -> void:
 	page_root.add_child(ui_button("▶  ЗАПУСТИТЬ ТРЕНИРОВКУ", Callable(launch_match), true))
 
 
+func build_cases() -> void:
+	var heading := make_card("RIFT // СТАНДАРТНЫЙ КЕЙС", "КЕЙСЫ И НАГРАДЫ", 0)
+	heading[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading[1].add_child(
+		make_label(
+			"Локальный прототип: вероятности видны до открытия, pity-счётчик не скрывается.",
+			10,
+			C_MUTED
+		)
+	)
+	page_root.add_child(heading[0])
+
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 12)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_root.add_child(columns)
+
+	var open_card := make_card("СТАНДАРТНЫЙ КЕЙС", "RIFT // SALTWORKS", 250)
+	open_card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	case_tokens_label = make_label("ТОКЕНЫ  %02d" % case_system.tokens, 15, C_GOLD)
+	case_pity_label = make_label(
+		"PITY  %02d%%  ·  ГАРАНТИЯ MYTHIC+ ПОСЛЕ 10 ОТКРЫТИЙ" % case_system.pity_percent(),
+		9,
+		C_MUTED
+	)
+	case_result_label = make_label("ОЖИДАНИЕ ОТКРЫТИЯ", 18, C_TEXT)
+	case_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	open_card[1].add_child(case_tokens_label)
+	open_card[1].add_child(case_pity_label)
+	open_card[1].add_child(case_result_label)
+	case_open_button = ui_button("ОТКРЫТЬ КЕЙС · 1 ТОКЕН", Callable(open_case), true)
+	open_card[1].add_child(case_open_button)
+	columns.add_child(open_card[0])
+
+	var odds_card := make_card("ТАБЛИЦА DROP", "ШАНСЫ ДО ОТКРЫТИЯ", 250)
+	odds_card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for row in case_system.odds_rows():
+		var odds_color: Color = row["color"]
+		odds_card[1].add_child(
+			make_label(
+				"%-10s  %05.2f%%" % [str(row["label"]), float(row["chance"])], 10, odds_color
+			)
+		)
+	columns.add_child(odds_card[0])
+
+	var inventory_card := make_card("ЛОКАЛЬНЫЙ ИНВЕНТАРЬ", "ПОСЛЕДНИЕ DROP", 0)
+	inventory_card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	case_inventory_box = VBoxContainer.new()
+	case_inventory_box.add_theme_constant_override("separation", 4)
+	inventory_card[1].add_child(case_inventory_box)
+	page_root.add_child(inventory_card[0])
+	refresh_case_page()
+
+
+func open_case() -> void:
+	var result := case_system.open_standard_case()
+	if not bool(result.get("ok", false)):
+		notify(str(result.get("message", "CASE НЕ ДОСТУПЕН")))
+		refresh_case_page()
+		return
+	var rarity := str(result["rarity"])
+	var ownership := "ДУБЛИКАТ" if bool(result["duplicate"]) else "НОВЫЙ ПРЕДМЕТ"
+	case_result_label.text = (
+		"%s  ·  %s  ·  %s" % [str(result["item_name"]), rarity.to_upper(), ownership]
+	)
+	case_result_label.add_theme_color_override("font_color", case_color(rarity))
+	if bool(result.get("pity_triggered", false)):
+		notify("PITY СРАБОТАЛ · %s" % str(result["item_name"]))
+	elif bool(result["duplicate"]):
+		notify("ДУБЛИКАТ · %s" % str(result["item_name"]))
+	else:
+		notify("НОВЫЙ DROP · %s" % str(result["item_name"]))
+	refresh_case_page()
+
+
+func refresh_case_page() -> void:
+	if not is_instance_valid(case_tokens_label):
+		return
+	case_tokens_label.text = "ТОКЕНЫ  %02d" % case_system.tokens
+	case_pity_label.text = (
+		"PITY  %02d%%  ·  ГАРАНТИЯ MYTHIC+ ПОСЛЕ 10 ОТКРЫТИЙ" % case_system.pity_percent()
+	)
+	case_open_button.disabled = case_system.tokens <= 0
+	for child in case_inventory_box.get_children():
+		child.queue_free()
+	var items := case_system.inventory_copy()
+	var start_index := maxi(items.size() - 6, 0)
+	if items.is_empty():
+		case_inventory_box.add_child(make_label("Пока пусто · открой первый case", 10, C_DIM))
+		return
+	for index in range(start_index, items.size()):
+		var item: Dictionary = items[index]
+		var rarity := str(item["rarity"])
+		var ownership := "ДУБЛИКАТ" if bool(item.get("duplicate", false)) else "НОВЫЙ"
+		var item_label := make_label(
+			(
+				"#%s  %s  ·  %s  ·  %s"
+				% [str(item["case_open_id"]), str(item["item_name"]), rarity.to_upper(), ownership]
+			),
+			10,
+			case_color(rarity)
+		)
+		case_inventory_box.add_child(item_label)
+
+
+func case_color(rarity: String) -> Color:
+	for row in case_system.odds_rows():
+		if str(row["id"]) == rarity:
+			var color: Color = row["color"]
+			return color
+	return C_TEXT
+
+
 func build_profile() -> void:
 	var profile := make_card("ОПЕРАТОР", "NIKO//ZERO", 220)
 	profile[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -413,7 +537,8 @@ func build_settings() -> void:
 			(
 				"W A S D     ДВИЖЕНИЕ\nМЫШЬ       ПОВОРОТ КАМЕРЫ\n"
 				+ "ЛКМ        ОГОНЬ\nQ / E      СМЕНА ОРУЖИЯ\n"
-				+ "1–0        БЫСТРЫЕ СЛОТЫ\nR          ПЕРЕЗАРЯДКА\n"
+				+ "1          RIFT-9 / СКОРОСТРЕЛКА\n2          AWM SANDWRAITH\n"
+				+ "3          НОЖ\n4–0        БЫСТРЫЕ СЛОТЫ\nR          ПЕРЕЗАРЯДКА\n"
 				+ "ESC        ВЫХОД В МЕНЮ\n\nVIEWPORT   1440 × 900\n"
 				+ "MINIMUM    800 × 500"
 			),

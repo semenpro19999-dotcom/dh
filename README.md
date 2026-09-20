@@ -2,7 +2,7 @@
 
 KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Основной runtime проекта — **Godot 4.5+**: GDScript, native `.tscn` scenes, ENet и headless-server план.
 
-> **Статус:** native Godot vertical slice с полностью переработанным меню, запускаемой 3D-картой Sandstone, рабочими camera look/firing, 3D-моделями игроков и оружия, бегом, прыжком, вооружёнными убиваемыми ботами и базовым bomb plant/defuse loop. Сетевая синхронизация, dedicated server и backend находятся в roadmap как следующие игровые вехи.
+> **Статус:** native Godot vertical slice с полностью переработанным меню, запускаемой 3D-картой SALTWORKS, рабочими camera look/firing, 3D-моделями игроков и оружия, бегом, прыжком, вооружёнными убиваемыми ботами, базовым bomb plant/defuse loop и локальным case prototype. Сетевая синхронизация, dedicated server и backend находятся в roadmap как следующие игровые вехи.
 
 ## Что реализовано
 
@@ -10,14 +10,15 @@ KS3 — производственный концепт и интерактив�
 - `scenes/main.tscn` — стартовая сцена командного центра;
 - `scenes/match.tscn` — запускаемая локальная игровая сцена;
 - `scripts/main.gd` — нативный интерфейс Control без web-слоя;
-- `scripts/match.gd` — 3D Sandstone arena, mouse look, raycast-стрельба, бег, прыжок, bomb plant/defuse, убиваемые вооружённые боты с FSM combat AI и HUD;
-- `scripts/arsenal.gd` — общий data-driven каталог из 30 видов оружия: 20 firearm slots + 10 ножей;
+- `scripts/match.gd` — 3D SALTWORKS arena, mouse look, raycast-стрельба, бег, прыжок, bomb plant/defuse, убиваемые вооружённые боты с FSM combat AI и HUD;
+- `scripts/arsenal.gd` — общий data-driven каталог из 30 видов оружия: 20 firearm slots + 10 ножей; AWM SANDWRAITH сохранён как sniper slot;
+- `scripts/case_system.gd` — локальные Standard cases с odds, pity после 10 низких открытий, duplicate flags и persistent inventory history;
 - `assets/models/kenney/` — импортированные CC0 GLB-модели игроков, огнестрельного оружия и ножей;
 - `assets/audio/` — интернет-ассеты с CC0-лицензией для выстрелов, попаданий, движения, бомбы и ambient; provenance в `docs/ASSET_LICENSES.md`;
-- полностью переработанное главное меню: Sandstone hero-screen, вертикальная навигация, briefing карты, запуск матча и арсенал;
-- процедурная карта Sandstone: западный рынок, центральный двор, восточная цитадель, арки, башни, ступени, две objective-зоны и три тренировочные цели;
-- Q/E переключают весь каталог оружия, клавиши 1–0 дают быстрый доступ к слотам, мышь управляет камерой и стрельбой;
-- Shift — бег, Space — прыжок, удержание F на objective site — плант бомбы, удержание F возле бомбы — обезвреживание;
+- полностью переработанное главное меню: SALTWORKS briefing-screen, вертикальная навигация, briefing карты, запуск матча, арсенал и кейсы;
+- полностью переработанная процедурная карта SALTWORKS: Loading Yard, Brine Core, Refinery Control, silos, tanks, catwalk, warehouse и две objective-зоны; схема зафиксирована в `docs/MAP_SALTWORKS.md`;
+- Q/E переключают весь каталог оружия; 1 — скорострелка RIFT-9, 2 — AWM SANDWRAITH, 3 — нож, 4–0 — быстрые слоты;
+- мышь управляет камерой и стрельбой; Shift — бег, Space — прыжок, удержание F на objective site — плант бомбы, удержание F возле бомбы — обезвреживание;
 - русскоязычный adaptive HUD с таймером, HP, живыми ботами, оружием, слотом, патронами, бомбой и целями;
 - оригинальные демонстрационные материалы в `assets/`, включая Sandstone menu key art.
 
@@ -43,8 +44,9 @@ project.godot             # Godot 4.5+ project settings
 scenes/main.tscn          # стартовая сцена командного центра
 scenes/match.tscn         # локальная игровая сцена
 scripts/main.gd           # интерфейс командного центра
-scripts/match.gd          # Sandstone arena, camera, weapons and HUD
+scripts/match.gd          # SALTWORKS arena, camera, weapons and HUD
 scripts/arsenal.gd         # shared catalogue: 30 weapons / 10 knives
+scripts/case_system.gd     # local case odds, pity and inventory history
 scripts/network_manager.gd# ENet host / client lifecycle
 scripts/match_state.gd    # server-authoritative round model
 
@@ -67,6 +69,7 @@ docs/ROADMAP.md           # MVP → Alpha → Beta → Release
 docs/GODOT_MIGRATION.md   # решения Godot-перехода и следующий план
 docs/UI_LAYOUT.md          # русская схема интерфейса и правила viewport
 docs/ASSET_LICENSES.md     # provenance и лицензии импортированных моделей/звуков
+docs/MAP_SALTWORKS.md      # новая схема playable карты SALTWORKS
 ```
 
 ## Техническое решение
