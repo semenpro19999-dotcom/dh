@@ -346,16 +346,16 @@ func resolve_target_hit(collider: Node, _spec: Dictionary) -> bool:
 
 func create_box(
 	node_name: String,
-	position: Vector3,
+	box_position: Vector3,
 	box_size: Vector3,
 	color: Color,
 	glowing: bool = false,
-	rotation_degrees: Vector3 = Vector3.ZERO
+	box_rotation_degrees: Vector3 = Vector3.ZERO
 ) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = node_name
-	body.position = position
-	body.rotation_degrees = rotation_degrees
+	body.position = box_position
+	body.rotation_degrees = box_rotation_degrees
 	body.collision_layer = 1
 	body.collision_mask = 1
 	add_child(body)
@@ -378,7 +378,7 @@ func create_box(
 
 func create_archway(
 	arch_name: String,
-	position: Vector3,
+	arch_position: Vector3,
 	width: float,
 	height: float,
 	depth: float,
@@ -391,12 +391,14 @@ func create_archway(
 	if absf(sideways.z) > 0.5:
 		column_size = Vector3(depth, height, 0.6)
 		beam_size = Vector3(depth, 0.7, width)
-	create_box(arch_name + "Left", position - sideways * width * 0.5, column_size, color)
-	create_box(arch_name + "Right", position + sideways * width * 0.5, column_size, color)
-	create_box(arch_name + "Lintel", position + Vector3(0.0, height - 0.35, 0.0), beam_size, color)
+	create_box(arch_name + "Left", arch_position - sideways * width * 0.5, column_size, color)
+	create_box(arch_name + "Right", arch_position + sideways * width * 0.5, column_size, color)
+	create_box(
+		arch_name + "Lintel", arch_position + Vector3(0.0, height - 0.35, 0.0), beam_size, color
+	)
 	create_box(
 		arch_name + "Crown",
-		position + Vector3(0.0, height + 0.25, 0.0),
+		arch_position + Vector3(0.0, height + 0.25, 0.0),
 		beam_size * Vector3(1.12, 0.7, 1.0),
 		C_SAND_DARK
 	)
@@ -421,48 +423,60 @@ func create_steps(
 		create_box(step_name + str(index), step_position, step_size, C_SAND_LIGHT)
 
 
-func create_market_stall(position: Vector3, cloth_color: Color) -> void:
-	create_box("StallCounter", position + Vector3(0.0, 0.55, 0.0), Vector3(2.8, 1.1, 1.2), C_WOOD)
+func create_market_stall(stall_position: Vector3, cloth_color: Color) -> void:
 	create_box(
-		"StallRoof", position + Vector3(0.0, 2.4, 0.0), Vector3(3.4, 0.18, 1.8), cloth_color, true
+		"StallCounter", stall_position + Vector3(0.0, 0.55, 0.0), Vector3(2.8, 1.1, 1.2), C_WOOD
 	)
 	create_box(
-		"StallPostA", position + Vector3(-1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
+		"StallRoof",
+		stall_position + Vector3(0.0, 2.4, 0.0),
+		Vector3(3.4, 0.18, 1.8),
+		cloth_color,
+		true
 	)
 	create_box(
-		"StallPostB", position + Vector3(1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
+		"StallPostA", stall_position + Vector3(-1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
+	)
+	create_box(
+		"StallPostB", stall_position + Vector3(1.35, 1.35, -0.65), Vector3(0.15, 2.7, 0.15), C_WOOD
 	)
 
 
-func create_banner(position: Vector3, color: Color) -> void:
-	create_box("BannerPole", position + Vector3(-0.8, -1.2, 0.0), Vector3(0.08, 2.8, 0.08), C_WOOD)
+func create_banner(banner_position: Vector3, color: Color) -> void:
 	create_box(
-		"BannerCloth", position + Vector3(0.0, -0.8, 0.0), Vector3(1.4, 1.4, 0.08), color, true
+		"BannerPole", banner_position + Vector3(-0.8, -1.2, 0.0), Vector3(0.08, 2.8, 0.08), C_WOOD
+	)
+	create_box(
+		"BannerCloth",
+		banner_position + Vector3(0.0, -0.8, 0.0),
+		Vector3(1.4, 1.4, 0.08),
+		color,
+		true
 	)
 
 
-func create_objective_zone(zone_name: String, position: Vector3, color: Color) -> void:
-	create_box(zone_name, position, Vector3(4.0, 0.08, 4.0), color, true)
+func create_objective_zone(zone_name: String, zone_position: Vector3, color: Color) -> void:
+	create_box(zone_name, zone_position, Vector3(4.0, 0.08, 4.0), color, true)
 	create_box(
 		zone_name + "Marker",
-		position + Vector3(0.0, 0.2, 0.0),
+		zone_position + Vector3(0.0, 0.2, 0.0),
 		Vector3(0.15, 0.35, 4.4),
 		color,
 		true
 	)
 	create_box(
 		zone_name + "MarkerCross",
-		position + Vector3(0.0, 0.2, 0.0),
+		zone_position + Vector3(0.0, 0.2, 0.0),
 		Vector3(4.4, 0.35, 0.15),
 		color,
 		true
 	)
 
 
-func create_target(target_name: String, position: Vector3) -> void:
+func create_target(target_name: String, target_position: Vector3) -> void:
 	var target := StaticBody3D.new()
 	target.name = target_name
-	target.position = position
+	target.position = target_position
 	target.collision_layer = 1
 	target.collision_mask = 1
 	target.add_to_group("target")
