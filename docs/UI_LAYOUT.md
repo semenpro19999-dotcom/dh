@@ -37,6 +37,7 @@
 - `Space` — прыжок;
 - `MouseMotion` через `_input()` — yaw игрока и pitch головы;
 - ЛКМ через `_input()` и удержание в `_physics_process()` — стрельба;
+- ПКМ — удерживаемый ADS/прицел; обычное оружие получает zoom, AWM открывает scope overlay;
 - `RayCast3D` выполняет hit test, а `PhysicsRayQueryParameters3D` служит прямым physics fallback;
 - `Q/E` — переключение всех 30 оружий;
 - `1` — скорострелка RIFT-9;

@@ -71,7 +71,7 @@ docs/ASSET_LICENSES.md # provenance and license ledger for imported binary asset
 - текущий playable layout — новая процедурная карта `SALTWORKS`: Loading Yard, Brine Core, Refinery Control, silos, tanks, catwalk и warehouse; подробная схема в `docs/MAP_SALTWORKS.md`;
 - `scripts/case_system.gd` реализует локальный case prototype с видимыми odds, token ledger, inventory drop и pity counter; production RNG должен быть перенесён в server Cases service;
 - bots имеют отдельный `CapsuleShape3D` hitbox и health state; попадание по `CharacterBody3D` больше не ограничено группой статических целей;
-- матч поддерживает Shift-бег, Space-прыжок, F-плант на двух objective sites с 2,5-секундной установкой, 40-секундным таймером и 3-секундным обезвреживанием;
+- матч поддерживает Shift-бег, Space-прыжок, удерживаемый ПКМ ADS с плавным FOV, AWM scope overlay, recoil, hip-fire spread и F-плант на двух objective sites с 2,5-секундной установкой, 40-секундным таймером и 3-секундным обезвреживанием;
 - центральный action/status popup удалён: состояние бомбы и матча остаётся в компактном HUD, без перекрытия crosshair;
 - HUD показывает `HP`, число живых ботов, активное оружие, магазин/резерв, состояние бомбы и оставшиеся цели; размеры root UI растягиваются от базового viewport 1440×900 до минимального окна 800×500;
 - полноценный runtime smoke-test требует установленного Godot 4.5+ и выполняется в редакторе/CI проекта; в sandbox этот бинарник отсутствует.

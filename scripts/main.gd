@@ -383,7 +383,7 @@ func build_training() -> void:
 		make_label(
 			(
 				"В матче мышь вращает камеру через _input. "
-				+ "ЛКМ запускает physics ray query по центру прицела."
+				+ "ЛКМ стреляет, ПКМ включает ADS и точный прицел."
 			),
 			10,
 			C_MUTED
@@ -397,6 +397,7 @@ func build_training() -> void:
 		["W A S D", "движение", C_GREEN],
 		["МЫШЬ", "камера 360°", C_TEAL],
 		["ЛКМ", "raycast-огонь", C_GOLD],
+		["ПКМ", "ADS / прицел", C_AMBER],
 		["Q / E", "30 слотов", C_RED]
 	]:
 		var card := make_card(item[0], item[1], 130)
@@ -536,7 +537,7 @@ func build_settings() -> void:
 		make_label(
 			(
 				"W A S D     ДВИЖЕНИЕ\nМЫШЬ       ПОВОРОТ КАМЕРЫ\n"
-				+ "ЛКМ        ОГОНЬ\nQ / E      СМЕНА ОРУЖИЯ\n"
+				+ "ЛКМ        ОГОНЬ\nПКМ        ADS / ПРИЦЕЛ\nQ / E      СМЕНА ОРУЖИЯ\n"
 				+ "1          RIFT-9 / СКОРОСТРЕЛКА\n2          AWM SANDWRAITH\n"
 				+ "3          НОЖ\n4–0        БЫСТРЫЕ СЛОТЫ\nR          ПЕРЕЗАРЯДКА\n"
 				+ "ESC        ВЫХОД В МЕНЮ\n\nVIEWPORT   1440 × 900\n"

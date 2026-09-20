@@ -1,7 +1,7 @@
 extends Node3D  # gdlint: ignore=max-public-methods
 ## KS3 — Sandstone: локальный 3D tactical shooter slice.
 ## WASD — движение, Shift — бег, Space — прыжок, мышь — камера и огонь,
-## Q/E — смена оружия, 1–0 — быстрый выбор слотов, R — перезарядка,
+## ПКМ — удерживаемый ADS/прицел, Q/E — смена оружия, 1–0 — быстрый выбор слотов, R — перезарядка,
 ## F — удерживать для установки/обезвреживания бомбы, Esc — выход в меню.
 
 const Arsenal = preload("res://scripts/arsenal.gd")
@@ -59,6 +59,9 @@ const C_MUTED := Color("#C7AD8C")
 const C_AMBER := Color("#F0B56F")
 const C_RED := Color("#E67C68")
 const C_GREEN := Color("#86D39D")
+const HIP_FOV := 92.0
+const ADS_FOV := 62.0
+const SNIPER_ADS_FOV := 34.0
 
 const BOT_STATE_PATROL := 0
 const BOT_STATE_ATTACK := 1
@@ -112,6 +115,12 @@ var bomb_site_index := -1
 var bomb_visual: Node3D
 var plant_progress := 0.0
 var defuse_progress := 0.0
+var is_aiming := false
+var aim_blend := 0.0
+var recoil_pitch := 0.0
+var weapon_bob_time := 0.0
+var hit_marker_timer := 0.0
+var current_sprinting := false
 
 var timer_label: Label
 var weapon_label: Label
@@ -121,6 +130,10 @@ var target_label: Label
 var health_label: Label
 var bots_label: Label
 var bomb_label: Label
+var aim_status_label: Label
+var crosshair: Label
+var hit_marker: Label
+var scope_overlay: Control
 
 
 func _ready() -> void:
@@ -151,6 +164,7 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.0:
 		direction = (player.global_transform.basis * direction).normalized()
 	var sprinting := Input.is_key_pressed(KEY_SHIFT) and direction.length_squared() > 0.0
+	current_sprinting = sprinting
 	var move_speed := 8.5 if sprinting else 5.5
 	if direction.length_squared() > 0.0:
 		player.velocity.x = direction.x * move_speed
@@ -186,6 +200,11 @@ func _physics_process(delta: float) -> void:
 
 	fire_cooldown = maxf(fire_cooldown - delta, 0.0)
 	round_time = maxf(round_time - delta, 0.0)
+	update_aim_and_view(delta)
+	if hit_marker_timer > 0.0:
+		hit_marker_timer = maxf(hit_marker_timer - delta, 0.0)
+		if hit_marker_timer <= 0.0 and is_instance_valid(hit_marker):
+			hit_marker.visible = false
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		fire_weapon()
 	update_bots(delta)
@@ -201,12 +220,13 @@ func _input(event: InputEvent) -> void:
 			camera_yaw -= event.relative.x * mouse_sensitivity
 			camera_pitch = clampf(camera_pitch - event.relative.y * mouse_sensitivity, -1.35, 1.35)
 			player.rotation.y = camera_yaw
-			head.rotation.x = camera_pitch
+			head.rotation.x = camera_pitch - recoil_pitch
 			get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
+			is_aiming = false
 			exit_to_menu()
 		elif event.keycode == KEY_Q:
 			select_weapon(active_weapon_index - 1)
@@ -227,8 +247,14 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			is_aiming = event.pressed and not current_sprinting
+			if event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			get_viewport().set_input_as_handled()
+			return
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 			else:
@@ -376,7 +402,7 @@ func build_player() -> void:
 	camera = Camera3D.new()
 	camera.name = "Camera3D"
 	camera.current = true
-	camera.fov = 92.0
+	camera.fov = HIP_FOV
 	camera.near = 0.05
 	camera.far = 150.0
 	head.add_child(camera)
@@ -503,6 +529,46 @@ func find_weapon_index(weapon_id: String) -> int:
 		if str(weapon_catalog[index]["id"]) == weapon_id:
 			return index
 	return 0
+
+
+func weapon_is_sniper(spec: Dictionary) -> bool:
+	return str(spec["id"]) == "awm" or str(spec["category"]) == "СНАЙПЕРСКАЯ"
+
+
+func weapon_ads_fov(spec: Dictionary) -> float:
+	return SNIPER_ADS_FOV if weapon_is_sniper(spec) else ADS_FOV
+
+
+func update_aim_and_view(delta: float) -> void:
+	if not is_instance_valid(camera) or weapon_catalog.is_empty():
+		return
+	var spec: Dictionary = weapon_catalog[active_weapon_index]
+	var can_aim := not bool(spec["is_knife"]) and not current_sprinting
+	var aim_target := 1.0 if is_aiming and can_aim else 0.0
+	aim_blend = move_toward(aim_blend, aim_target, delta * 10.0)
+	camera.fov = lerpf(HIP_FOV, weapon_ads_fov(spec), aim_blend)
+	recoil_pitch = move_toward(recoil_pitch, 0.0, delta * 0.9)
+	head.rotation.x = camera_pitch - recoil_pitch
+	if not is_instance_valid(weapon_mesh):
+		return
+	if bool(spec["is_knife"]):
+		weapon_mesh.position = Vector3(0.46, -0.36, -0.78)
+		weapon_mesh.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		return
+	weapon_bob_time += delta * (12.0 if current_sprinting else 7.0)
+	var bob_strength := 0.012 if current_sprinting else 0.006
+	bob_strength *= 1.0 - aim_blend
+	var bob := Vector3(
+		sin(weapon_bob_time) * bob_strength,
+		absf(cos(weapon_bob_time * 0.5)) * bob_strength * 0.7,
+		0.0
+	)
+	var hip_position := Vector3(0.46, -0.36, -0.78)
+	var ads_position := Vector3(0.04, -0.20, -0.58)
+	weapon_mesh.position = hip_position.lerp(ads_position, aim_blend) + bob
+	var hip_rotation := Vector3(-6.0, 180.0, 0.0)
+	var ads_rotation := Vector3(-2.0, 180.0, 0.0)
+	weapon_mesh.rotation_degrees = hip_rotation.lerp(ads_rotation, aim_blend)
 
 
 func select_weapon(index: int) -> void:
@@ -773,6 +839,9 @@ func respawn_player() -> void:
 	player.velocity = Vector3.ZERO
 	camera_yaw = 0.0
 	camera_pitch = 0.0
+	is_aiming = false
+	aim_blend = 0.0
+	recoil_pitch = 0.0
 	player.rotation.y = camera_yaw
 	head.rotation.x = camera_pitch
 
@@ -788,11 +857,24 @@ func fire_weapon() -> void:
 	fire_cooldown = float(spec["cooldown"])
 	if not bool(spec["is_knife"]):
 		current_ammo -= 1
+		var recoil_strength := 0.05 if weapon_is_sniper(spec) else 0.022
+		if aim_blend > 0.75:
+			recoil_strength *= 0.72
+		recoil_pitch = minf(recoil_pitch + recoil_strength, 0.18)
 
 	var shot_distance := 3.2 if bool(spec["is_knife"]) else 100.0
+	var spread := 0.0
+	if not bool(spec["is_knife"]):
+		spread = 0.0008 if aim_blend > 0.75 else 0.008
+		if current_sprinting:
+			spread = 0.018
+	var aim_offset := Vector3(
+		randf_range(-spread, spread), randf_range(-spread, spread), -shot_distance
+	)
+	var aim_direction := (camera.global_transform.basis * aim_offset.normalized()).normalized()
 	var collider: Node = null
-	var hit_position := camera.global_position - camera.global_transform.basis.z * shot_distance
-	weapon_ray.target_position = Vector3(0.0, 0.0, -shot_distance)
+	var hit_position := camera.global_position + aim_direction * shot_distance
+	weapon_ray.target_position = aim_offset
 	weapon_ray.force_raycast_update()
 	if weapon_ray.is_colliding():
 		var ray_collider = weapon_ray.get_collider()
@@ -801,8 +883,7 @@ func fire_weapon() -> void:
 			hit_position = weapon_ray.get_collision_point()
 	else:
 		var query := PhysicsRayQueryParameters3D.create(
-			camera.global_position,
-			camera.global_position - camera.global_transform.basis.z * shot_distance
+			camera.global_position, camera.global_position + aim_direction * shot_distance
 		)
 		query.collision_mask = 1
 		query.exclude = [player.get_rid()]
@@ -816,6 +897,8 @@ func fire_weapon() -> void:
 	var bot_hit_state := damage_bot(collider, spec)
 	var hit_target := resolve_target_hit(collider, spec)
 	var hit_anything := bot_hit_state > 0 or hit_target
+	if hit_anything:
+		show_hit_marker(bot_hit_state == 2 or hit_target)
 	if not bool(spec["is_knife"]):
 		show_shot_visual(camera.global_position, hit_position, C_AMBER)
 	if collider != null:
@@ -878,6 +961,15 @@ func show_impact(impact_position: Vector3, color: Color) -> void:
 	impact.material_override = make_material(color, true)
 	add_child(impact)
 	get_tree().create_timer(0.18).timeout.connect(impact.queue_free)
+
+
+func show_hit_marker(kill: bool) -> void:
+	if not is_instance_valid(hit_marker):
+		return
+	hit_marker.text = "✕" if not kill else "✦"
+	hit_marker.add_theme_color_override("font_color", C_RED if kill else C_TEXT)
+	hit_marker.visible = true
+	hit_marker_timer = 0.16 if not kill else 0.32
 
 
 func damage_bot(collider: Node, spec: Dictionary) -> int:
@@ -1185,6 +1277,48 @@ func create_target(target_name: String, target_position: Vector3) -> void:
 	target.add_child(collision)
 
 
+func build_scope_overlay() -> Control:
+	var overlay := Control.new()
+	var mask_color := Color(0.01, 0.008, 0.006, 0.86)
+	var top_mask := ColorRect.new()
+	top_mask.color = mask_color
+	top_mask.anchor_right = 1.0
+	top_mask.anchor_bottom = 0.22
+	overlay.add_child(top_mask)
+	var bottom_mask := ColorRect.new()
+	bottom_mask.color = mask_color
+	bottom_mask.anchor_top = 0.78
+	bottom_mask.anchor_right = 1.0
+	bottom_mask.anchor_bottom = 1.0
+	overlay.add_child(bottom_mask)
+	var left_mask := ColorRect.new()
+	left_mask.color = mask_color
+	left_mask.anchor_top = 0.22
+	left_mask.anchor_right = 0.22
+	left_mask.anchor_bottom = 0.78
+	overlay.add_child(left_mask)
+	var right_mask := ColorRect.new()
+	right_mask.color = mask_color
+	right_mask.anchor_left = 0.78
+	right_mask.anchor_top = 0.22
+	right_mask.anchor_right = 1.0
+	right_mask.anchor_bottom = 0.78
+	overlay.add_child(right_mask)
+	var reticle := make_label("◎", 46, C_AMBER)
+	reticle.anchor_left = 0.5
+	reticle.anchor_right = 0.5
+	reticle.anchor_top = 0.5
+	reticle.anchor_bottom = 0.5
+	reticle.offset_left = -32.0
+	reticle.offset_right = 32.0
+	reticle.offset_top = -32.0
+	reticle.offset_bottom = 32.0
+	reticle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reticle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	overlay.add_child(reticle)
+	return overlay
+
+
 func build_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "CombatHUD"
@@ -1238,9 +1372,11 @@ func build_hud() -> void:
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 16)
 	bottom_margin.add_child(bottom_row)
-	var controls := make_label("WASD · SHIFT БЕГ · SPACE ПРЫЖОК · F БОМБА", 8, C_MUTED)
+	var controls := make_label("WASD · SHIFT БЕГ · SPACE ПРЫЖОК · RMB ПРИЦЕЛ · F БОМБА", 8, C_MUTED)
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_row.add_child(controls)
+	aim_status_label = make_label("HIP FIRE", 9, C_MUTED)
+	bottom_row.add_child(aim_status_label)
 	bomb_label = make_label("БОМБА F", 9, C_AMBER)
 	bottom_row.add_child(bomb_label)
 	weapon_slot_label = make_label("01 / 30", 9, C_AMBER)
@@ -1252,7 +1388,13 @@ func build_hud() -> void:
 	target_label = make_label("ЦЕЛИ 03", 9, C_GREEN)
 	bottom_row.add_child(target_label)
 
-	var crosshair := make_label("+", 22, C_TEXT)
+	scope_overlay = build_scope_overlay()
+	scope_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scope_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scope_overlay.visible = false
+	hud.add_child(scope_overlay)
+
+	crosshair = make_label("+", 22, C_TEXT)
 	crosshair.anchor_left = 0.5
 	crosshair.anchor_right = 0.5
 	crosshair.anchor_top = 0.5
@@ -1265,6 +1407,20 @@ func build_hud() -> void:
 	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hud.add_child(crosshair)
 
+	hit_marker = make_label("✕", 28, C_TEXT)
+	hit_marker.anchor_left = 0.5
+	hit_marker.anchor_right = 0.5
+	hit_marker.anchor_top = 0.5
+	hit_marker.anchor_bottom = 0.5
+	hit_marker.offset_left = -18.0
+	hit_marker.offset_right = 18.0
+	hit_marker.offset_top = -28.0
+	hit_marker.offset_bottom = 28.0
+	hit_marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hit_marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hit_marker.visible = false
+	hud.add_child(hit_marker)
+
 
 func update_hud() -> void:
 	var minutes := floori(round_time / 60.0)
@@ -1273,6 +1429,22 @@ func update_hud() -> void:
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
 	weapon_slot_label.text = "%02d / %02d" % [active_weapon_index + 1, weapon_catalog.size()]
 	weapon_label.text = str(spec["name"])
+	if is_instance_valid(aim_status_label):
+		if bool(spec["is_knife"]):
+			aim_status_label.text = "БЛИЖНИЙ БОЙ"
+		elif aim_blend > 0.55 and weapon_is_sniper(spec):
+			aim_status_label.text = "AWM SCOPE"
+		elif aim_blend > 0.55:
+			aim_status_label.text = "ADS"
+		else:
+			aim_status_label.text = "HIP FIRE"
+		aim_status_label.add_theme_color_override(
+			"font_color", C_AMBER if aim_blend > 0.55 else C_MUTED
+		)
+	if is_instance_valid(crosshair):
+		crosshair.visible = aim_blend < 0.55
+	if is_instance_valid(scope_overlay):
+		scope_overlay.visible = is_aiming and weapon_is_sniper(spec) and not current_sprinting
 	if bool(spec["is_knife"]):
 		ammo_label.text = "∞  БЛИЖНИЙ БОЙ"
 	else:
