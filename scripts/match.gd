@@ -484,7 +484,7 @@ func select_weapon(index: int) -> void:
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
 	current_ammo = int(spec["magazine"])
 	reserve_ammo = int(spec["reserve"])
-	muzzle_flash.light_color = spec["color"] as Color
+	muzzle_flash.light_color = spec["color"]
 	weapon_ray.target_position = Vector3(0.0, 0.0, -3.2 if bool(spec["is_knife"]) else -100.0)
 	if is_instance_valid(weapon_mesh):
 		weapon_mesh.queue_free()
@@ -506,7 +506,7 @@ func create_weapon_instance(spec: Dictionary, view_model: bool, catalog_index: i
 	var weapon_scene := get_weapon_scene(spec, resolved_index)
 	var weapon_model := weapon_scene.instantiate() as Node3D
 	weapon_root.add_child(weapon_model)
-	var weapon_color: Color = spec["color"] as Color
+	var weapon_color: Color = spec["color"]
 	tint_weapon_model(weapon_model, weapon_color)
 	weapon_root.position = (
 		Vector3(0.46, -0.36, -0.78) if view_model else Vector3(0.36, 0.55, -0.35)
@@ -613,7 +613,7 @@ func set_bot_state(bot_data: Dictionary, state: int, duration: float) -> void:
 	bot_data["state_time"] = duration
 
 
-func live_bot_from_data(bot_data: Dictionary) -> CharacterBody3D:
+func live_bot_from_data(bot_data: Dictionary):
 	var candidate = bot_data.get("node")
 	if not is_instance_valid(candidate):
 		return null

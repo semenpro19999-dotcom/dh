@@ -446,7 +446,7 @@ func info_card(
 
 
 func weapon_card(spec: Dictionary) -> PanelContainer:
-	var accent: Color = spec["color"] as Color
+	var accent: Color = spec["color"]
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(0, 152)
 	card.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0C"), accent))
