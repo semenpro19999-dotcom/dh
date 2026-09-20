@@ -413,6 +413,9 @@ func create_bot(
 	model.position = Vector3(0.0, -0.9, 0.0)
 	model.scale = Vector3.ONE * 0.76
 	bot.add_child(model)
+	var animation_player := model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if is_instance_valid(animation_player):
+		animation_player.play("idle")
 
 	var bot_weapon := create_weapon_instance(weapon_catalog[weapon_index], false, weapon_index)
 	bot.add_child(bot_weapon)
@@ -421,6 +424,7 @@ func create_bot(
 		{
 			"node": bot,
 			"weapon": weapon_catalog[weapon_index],
+			"animation": animation_player,
 			"health": 100,
 			"alive": true,
 			"cooldown": 0.8,
@@ -553,6 +557,11 @@ func update_bots(delta: float) -> void:
 			else:
 				desired = to_patrol.normalized()
 				bot.look_at(bot.global_position + desired, Vector3.UP)
+		var bot_animation := bot_data.get("animation") as AnimationPlayer
+		if is_instance_valid(bot_animation):
+			var animation_name := "walk" if desired.length_squared() > 0.01 else "idle"
+			if bot_animation.current_animation != animation_name:
+				bot_animation.play(animation_name)
 		bot.velocity.x = desired.x * 2.4
 		bot.velocity.z = desired.z * 2.4
 		if not bot.is_on_floor():
