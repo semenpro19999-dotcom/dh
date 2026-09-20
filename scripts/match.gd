@@ -556,7 +556,7 @@ func update_bots(delta: float) -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		var bot := live_bot_from_data(bot_data)
 		if not is_instance_valid(bot):
 			continue
 		var to_player := player.global_position - bot.global_position
@@ -613,6 +613,13 @@ func set_bot_state(bot_data: Dictionary, state: int, duration: float) -> void:
 	bot_data["state_time"] = duration
 
 
+func live_bot_from_data(bot_data: Dictionary) -> CharacterBody3D:
+	var candidate = bot_data.get("node")
+	if not is_instance_valid(candidate):
+		return null
+	return candidate as CharacterBody3D
+
+
 func bot_desired_direction(bot_data: Dictionary, bot: CharacterBody3D, distance: float) -> Vector3:
 	var desired := Vector3.ZERO
 	var state := int(bot_data["state"])
@@ -664,10 +671,10 @@ func notify_bots_of_noise(noise_position: Vector3, radius: float) -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
-		if not is_instance_valid(bot):
-			continue
-		if bot.global_position.distance_to(noise_position) > radius:
+			var bot := live_bot_from_data(bot_data)
+			if not is_instance_valid(bot):
+				continue
+			if bot.global_position.distance_to(noise_position) > radius:
 			continue
 		bot_data["last_seen_position"] = noise_position
 		if int(bot_data.get("state", BOT_STATE_PATROL)) != BOT_STATE_ATTACK:
@@ -685,7 +692,9 @@ func bot_can_see_player(bot: CharacterBody3D) -> bool:
 
 
 func bot_fire(bot_data: Dictionary) -> void:
-	var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+	var bot := live_bot_from_data(bot_data)
+	if not is_instance_valid(bot):
+		return
 	var spec: Dictionary = bot_data["weapon"]
 	var from := bot.global_position + Vector3(0.0, 0.75, 0.0)
 	var aim_target := player.global_position + Vector3(0.0, 0.65, 0.0)
@@ -708,7 +717,7 @@ func bot_fire(bot_data: Dictionary) -> void:
 	bot_shot_player.play()
 	bot_data["cooldown"] = maxf(0.28, float(spec["cooldown"]) * 4.0)
 	if not result.is_empty() and result.get("collider") == player:
-		health = maxi(0, health - maxi(2, int(int(spec["damage"]) / 9)))
+		health = maxi(0, health - maxi(2, int(float(spec["damage"]) / 9.0)))
 		hit_player.play()
 
 
@@ -740,8 +749,10 @@ func fire_weapon() -> void:
 	weapon_ray.target_position = Vector3(0.0, 0.0, -shot_distance)
 	weapon_ray.force_raycast_update()
 	if weapon_ray.is_colliding():
-		collider = weapon_ray.get_collider() as Node
-		hit_position = weapon_ray.get_collision_point()
+		var ray_collider = weapon_ray.get_collider()
+		if is_instance_valid(ray_collider):
+			collider = ray_collider as Node
+			hit_position = weapon_ray.get_collision_point()
 	else:
 		var query := PhysicsRayQueryParameters3D.create(
 			camera.global_position,
@@ -751,8 +762,10 @@ func fire_weapon() -> void:
 		query.exclude = [player.get_rid()]
 		var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
 		if not result.is_empty():
-			collider = result.get("collider") as Node
-			hit_position = result["position"]
+			var ray_result_collider = result.get("collider")
+			if is_instance_valid(ray_result_collider):
+				collider = ray_result_collider as Node
+				hit_position = result["position"]
 
 	var bot_hit_state := damage_bot(collider, spec)
 	var hit_target := resolve_target_hit(collider, spec)
@@ -822,17 +835,18 @@ func show_impact(impact_position: Vector3, color: Color) -> void:
 
 
 func damage_bot(collider: Node, spec: Dictionary) -> int:
-	if collider == null or not collider.is_in_group("bot"):
+	if collider == null or not is_instance_valid(collider) or not collider.is_in_group("bot"):
 		return 0
 	var bot_index := 0
 	while bot_index < bots.size():
 		var bot_data: Dictionary = bots[bot_index]
-		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
-		if bot == collider and bool(bot_data.get("alive", true)):
+		var bot := live_bot_from_data(bot_data)
+		if is_instance_valid(bot) and bot == collider and bool(bot_data.get("alive", true)):
 			bot_data["health"] = maxi(0, int(bot_data["health"]) - int(spec["damage"]))
 			if int(bot_data["health"]) <= 0:
 				bot_data["alive"] = false
 				bot.queue_free()
+				bot_data["node"] = null
 				return 2
 			return 1
 		bot_index += 1
@@ -940,10 +954,13 @@ func detonate_bomb() -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		var bot := live_bot_from_data(bot_data)
+		if not is_instance_valid(bot):
+			continue
 		if bot.global_position.distance_to(explosion_position) <= 8.0:
 			bot_data["alive"] = false
 			bot.queue_free()
+			bot_data["node"] = null
 	round_time = 0.0
 
 
