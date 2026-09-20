@@ -2,7 +2,7 @@
 
 KS3 — производственный концепт и интерактивный UI-вертикальный срез соревновательного tactical shooter 5×5. Основной runtime проекта — **Godot 4.5+**: GDScript, native `.tscn` scenes, ENet и headless-server план.
 
-> **Статус:** native Godot vertical slice с полностью переработанным меню, запускаемой 3D-картой Sandstone, поворотом FPS-камеры и data-driven арсеналом из 30 видов оружия, включая 10 ножей. Сетевая синхронизация, dedicated server, production-модели и backend находятся в roadmap как следующие игровые вехи.
+> **Статус:** native Godot vertical slice с полностью переработанным меню, запускаемой 3D-картой Sandstone, рабочими camera look/firing, 3D-моделями игроков и оружия, бегом, прыжком, вооружёнными убиваемыми ботами и базовым bomb plant/defuse loop. Сетевая синхронизация, dedicated server и backend находятся в roadmap как следующие игровые вехи.
 
 ## Что реализовано
 
@@ -10,12 +10,15 @@ KS3 — производственный концепт и интерактив�
 - `scenes/main.tscn` — стартовая сцена командного центра;
 - `scenes/match.tscn` — запускаемая локальная игровая сцена;
 - `scripts/main.gd` — нативный интерфейс Control без web-слоя;
-- `scripts/match.gd` — 3D Sandstone arena, движение, raycast-стрельба, поворот FPS-камеры и HUD;
+- `scripts/match.gd` — 3D Sandstone arena, mouse look, raycast-стрельба, бег, прыжок, bomb plant/defuse, убиваемые вооружённые боты и HUD;
 - `scripts/arsenal.gd` — общий data-driven каталог из 30 видов оружия: 20 firearm slots + 10 ножей;
+- `assets/models/kenney/` — импортированные CC0 GLB-модели игроков, огнестрельного оружия и ножей;
+- `assets/audio/` — интернет-ассеты с CC0-лицензией для выстрелов, попаданий, движения, бомбы и ambient; provenance в `docs/ASSET_LICENSES.md`;
 - полностью переработанное главное меню: Sandstone hero-screen, вертикальная навигация, briefing карты, запуск матча и арсенал;
 - процедурная карта Sandstone: западный рынок, центральный двор, восточная цитадель, арки, башни, ступени, две objective-зоны и три тренировочные цели;
 - Q/E переключают весь каталог оружия, клавиши 1–0 дают быстрый доступ к слотам, мышь управляет камерой и стрельбой;
-- русскоязычный adaptive HUD с таймером, оружием, слотом, патронами и целями;
+- Shift — бег, Space — прыжок, удержание F на objective site — плант бомбы, удержание F возле бомбы — обезвреживание;
+- русскоязычный adaptive HUD с таймером, HP, живыми ботами, оружием, слотом, патронами, бомбой и целями;
 - оригинальные демонстрационные материалы в `assets/`, включая Sandstone menu key art.
 
 ## Запуск Godot 4.5+
@@ -63,6 +66,7 @@ docs/SANDSTONE_REFERENCES.md # 30 map and architecture references
 docs/ROADMAP.md           # MVP → Alpha → Beta → Release
 docs/GODOT_MIGRATION.md   # решения Godot-перехода и следующий план
 docs/UI_LAYOUT.md          # русская схема интерфейса и правила viewport
+docs/ASSET_LICENSES.md     # provenance и лицензии импортированных моделей/звуков
 ```
 
 ## Техническое решение

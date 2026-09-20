@@ -1,15 +1,48 @@
 extends Node3D  # gdlint: ignore=max-public-methods
 ## KS3 — Sandstone: локальный 3D tactical shooter slice.
-## WASD — движение, мышь — поворот камеры и огонь, Q/E — смена оружия,
-## 1–0 — быстрый выбор слотов, R — перезарядка, Esc — выход в меню.
+## WASD — движение, Shift — бег, Space — прыжок, мышь — камера и огонь,
+## Q/E — смена оружия, 1–0 — быстрый выбор слотов, R — перезарядка,
+## F — удерживать для установки/обезвреживания бомбы, Esc — выход в меню.
 
 const Arsenal = preload("res://scripts/arsenal.gd")
-const SHOT_STREAM = preload("res://assets/audio/ks3_shot.wav")
-const BOT_SHOT_STREAM = preload("res://assets/audio/ks3_bot_shot.wav")
-const HIT_STREAM = preload("res://assets/audio/ks3_hit.wav")
-const RELOAD_STREAM = preload("res://assets/audio/ks3_reload.wav")
-const SWITCH_STREAM = preload("res://assets/audio/ks3_switch.wav")
-const MUSIC_STREAM = preload("res://assets/audio/ks3_sandstone_ambient.wav")
+const SHOT_STREAM = preload("res://assets/audio/cc0/shot_01.ogg")
+const BOT_SHOT_STREAM = preload("res://assets/audio/kenney/enemy_attack.ogg")
+const HIT_STREAM = preload("res://assets/audio/cc0/hit_01.ogg")
+const KILL_STREAM = preload("res://assets/audio/kenney/enemy_destroy.ogg")
+const RELOAD_STREAM = preload("res://assets/audio/kenney/metal_click.ogg")
+const SWITCH_STREAM = preload("res://assets/audio/kenney/weapon_change.ogg")
+const JUMP_STREAMS = [
+	preload("res://assets/audio/kenney/jump_a.ogg"),
+	preload("res://assets/audio/kenney/jump_b.ogg"),
+	preload("res://assets/audio/kenney/jump_c.ogg")
+]
+const LAND_STREAM = preload("res://assets/audio/kenney/land.ogg")
+const FOOTSTEP_STREAM = preload("res://assets/audio/kenney/walking.ogg")
+const PLANT_STREAM = preload("res://assets/audio/kenney/metal_latch.ogg")
+const KNIFE_STREAM = preload("res://assets/audio/kenney/knife_slice.ogg")
+const EXPLOSION_STREAM = preload("res://assets/audio/cc0/bomb_explosion.ogg")
+const MUSIC_STREAM = preload("res://assets/audio/cc0/ambient_01.ogg")
+
+const BOT_MODEL_SCENES = [
+	preload("res://assets/models/kenney/characters/character-a.glb"),
+	preload("res://assets/models/kenney/characters/character-b.glb"),
+	preload("res://assets/models/kenney/characters/character-c.glb"),
+	preload("res://assets/models/kenney/characters/character-d.glb")
+]
+const FIREARM_MODEL_SCENES = [
+	preload("res://assets/models/kenney/weapons/machinegun.glb"),
+	preload("res://assets/models/kenney/weapons/pistol.glb"),
+	preload("res://assets/models/kenney/weapons/shotgun.glb"),
+	preload("res://assets/models/kenney/weapons/sniper.glb"),
+	preload("res://assets/models/kenney/weapons/uzi.glb"),
+	preload("res://assets/models/kenney/weapons/flamethrower_long.glb")
+]
+const KNIFE_MODEL_SCENES = [
+	preload("res://assets/models/kenney/weapons/knifeRound_sharp.glb"),
+	preload("res://assets/models/kenney/weapons/knifeRound_smooth.glb"),
+	preload("res://assets/models/kenney/weapons/knife_sharp.glb"),
+	preload("res://assets/models/kenney/weapons/knife_smooth.glb")
+]
 
 const C_SKY := Color("#2E2520")
 const C_SAND_FLOOR := Color("#9B6B45")
@@ -31,9 +64,10 @@ var player: CharacterBody3D
 var head: Node3D
 var camera: Camera3D
 var weapon_ray: RayCast3D
-var weapon_mesh: MeshInstance3D
+var weapon_mesh: Node3D
 var muzzle_flash: OmniLight3D
 var targets: Array[StaticBody3D] = []
+var bomb_sites: Array[StaticBody3D] = []
 var bots: Array[Dictionary] = []
 var weapon_catalog: Array[Dictionary] = Arsenal.WEAPONS.duplicate(true)
 
@@ -41,8 +75,15 @@ var music_player: AudioStreamPlayer
 var shot_player: AudioStreamPlayer
 var bot_shot_player: AudioStreamPlayer
 var hit_player: AudioStreamPlayer
+var kill_player: AudioStreamPlayer
 var reload_player: AudioStreamPlayer
 var switch_player: AudioStreamPlayer
+var jump_player: AudioStreamPlayer
+var land_player: AudioStreamPlayer
+var footstep_player: AudioStreamPlayer
+var plant_player: AudioStreamPlayer
+var knife_player: AudioStreamPlayer
+var explosion_player: AudioStreamPlayer
 
 var round_time := 180.0
 var fire_cooldown := 0.0
@@ -54,6 +95,17 @@ var active_weapon_index := 0
 var mouse_sensitivity := 0.002
 var camera_yaw := 0.0
 var camera_pitch := 0.0
+var jump_was_down := false
+var footstep_timer := 0.0
+var bomb_carried := true
+var bomb_planted := false
+var bomb_detonated := false
+var bomb_defused := false
+var bomb_time_left := 0.0
+var bomb_site_index := -1
+var bomb_visual: Node3D
+var plant_progress := 0.0
+var defuse_progress := 0.0
 
 var timer_label: Label
 var weapon_label: Label
@@ -62,7 +114,7 @@ var ammo_label: Label
 var target_label: Label
 var health_label: Label
 var bots_label: Label
-var status_label: Label
+var bomb_label: Label
 
 
 func _ready() -> void:
@@ -92,19 +144,46 @@ func _physics_process(delta: float) -> void:
 	var direction := Vector3(input_vector.x, 0.0, input_vector.y)
 	if direction.length_squared() > 0.0:
 		direction = (player.global_transform.basis * direction).normalized()
-	player.velocity.x = direction.x * 5.5
-	player.velocity.z = direction.z * 5.5
-	if not player.is_on_floor():
+	var sprinting := Input.is_key_pressed(KEY_SHIFT) and direction.length_squared() > 0.0
+	var move_speed := 8.5 if sprinting else 5.5
+	if direction.length_squared() > 0.0:
+		player.velocity.x = direction.x * move_speed
+		player.velocity.z = direction.z * move_speed
+	else:
+		player.velocity.x = move_toward(player.velocity.x, 0.0, 22.0 * delta)
+		player.velocity.z = move_toward(player.velocity.z, 0.0, 22.0 * delta)
+
+	var was_on_floor := player.is_on_floor()
+	var jump_down := Input.is_key_pressed(KEY_SPACE)
+	var started_jump := jump_down and not jump_was_down and was_on_floor
+	jump_was_down = jump_down
+	if started_jump:
+		player.velocity.y = 6.8
+		jump_player.stream = JUMP_STREAMS[randi() % JUMP_STREAMS.size()]
+		jump_player.play()
+	elif not was_on_floor:
 		player.velocity.y -= 18.0 * delta
 	else:
 		player.velocity.y = -0.2
 	player.move_and_slide()
+	if not was_on_floor and player.is_on_floor():
+		land_player.play()
+
+	if player.is_on_floor() and direction.length_squared() > 0.0 and not started_jump:
+		footstep_timer -= delta
+		if footstep_timer <= 0.0:
+			footstep_player.pitch_scale = randf_range(0.94, 1.06) * (1.08 if sprinting else 1.0)
+			footstep_player.play()
+			footstep_timer = 0.28 if sprinting else 0.42
+	else:
+		footstep_timer = 0.0
 
 	fire_cooldown = maxf(fire_cooldown - delta, 0.0)
 	round_time = maxf(round_time - delta, 0.0)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		fire_weapon()
 	update_bots(delta)
+	update_bomb(delta)
 	if health <= 0:
 		respawn_player()
 	update_hud()
@@ -182,6 +261,9 @@ func build_world() -> void:
 	build_watchtowers()
 	create_objective_zone("ObjectiveA", Vector3(-13.0, 0.03, -6.0), C_TEAL)
 	create_objective_zone("ObjectiveB", Vector3(13.0, 0.03, 6.0), C_AMBER)
+	bomb_sites.clear()
+	bomb_sites.append(get_node("ObjectiveA") as StaticBody3D)
+	bomb_sites.append(get_node("ObjectiveB") as StaticBody3D)
 
 	create_target("TargetA", Vector3(-18.0, 1.0, 4.0))
 	create_target("TargetB", Vector3(13.0, 1.0, 8.0))
@@ -325,29 +407,22 @@ func create_bot(
 	capsule.shape = capsule_shape
 	bot.add_child(capsule)
 
-	var body_mesh := MeshInstance3D.new()
-	var body_shape := CapsuleMesh.new()
-	body_shape.radius = 0.38
-	body_shape.height = 1.8
-	body_mesh.mesh = body_shape
-	body_mesh.material_override = make_material(C_RED, false)
-	bot.add_child(body_mesh)
+	var model_scene: PackedScene = BOT_MODEL_SCENES[bots.size() % BOT_MODEL_SCENES.size()]
+	var model := model_scene.instantiate() as Node3D
+	model.name = "BotModel"
+	model.position = Vector3(0.0, -0.9, 0.0)
+	model.scale = Vector3.ONE * 0.76
+	bot.add_child(model)
 
-	var bot_weapon := MeshInstance3D.new()
-	var weapon_shape := BoxMesh.new()
-	weapon_shape.size = Vector3(0.16, 0.16, 0.72)
-	bot_weapon.mesh = weapon_shape
-	bot_weapon.position = Vector3(0.36, 0.55, -0.35)
-	bot_weapon.rotation_degrees = Vector3(-6.0, -12.0, 0.0)
-	bot_weapon.material_override = make_material(
-		weapon_catalog[weapon_index]["color"] as Color, false
-	)
+	var bot_weapon := create_weapon_instance(weapon_catalog[weapon_index], false, weapon_index)
 	bot.add_child(bot_weapon)
 
 	bots.append(
 		{
 			"node": bot,
 			"weapon": weapon_catalog[weapon_index],
+			"health": 100,
+			"alive": true,
 			"cooldown": 0.8,
 			"patrol": patrol_points,
 			"patrol_index": 0,
@@ -357,14 +432,21 @@ func create_bot(
 
 
 func build_audio() -> void:
-	music_player = make_audio_player(MUSIC_STREAM, -17.0)
+	music_player = make_audio_player(MUSIC_STREAM, -18.0)
 	music_player.finished.connect(func() -> void: music_player.play())
 	music_player.play()
-	shot_player = make_audio_player(SHOT_STREAM, -7.0)
-	bot_shot_player = make_audio_player(BOT_SHOT_STREAM, -12.0)
+	shot_player = make_audio_player(SHOT_STREAM, -8.0)
+	bot_shot_player = make_audio_player(BOT_SHOT_STREAM, -13.0)
 	hit_player = make_audio_player(HIT_STREAM, -5.0)
+	kill_player = make_audio_player(KILL_STREAM, -4.0)
 	reload_player = make_audio_player(RELOAD_STREAM, -8.0)
 	switch_player = make_audio_player(SWITCH_STREAM, -9.0)
+	jump_player = make_audio_player(JUMP_STREAMS[0], -8.0)
+	land_player = make_audio_player(LAND_STREAM, -10.0)
+	footstep_player = make_audio_player(FOOTSTEP_STREAM, -18.0)
+	plant_player = make_audio_player(PLANT_STREAM, -7.0)
+	knife_player = make_audio_player(KNIFE_STREAM, -7.0)
+	explosion_player = make_audio_player(EXPLOSION_STREAM, -2.0)
 
 
 func make_audio_player(stream: AudioStream, volume_db: float) -> AudioStreamPlayer:
@@ -390,40 +472,53 @@ func select_weapon(index: int) -> void:
 	weapon_ray.target_position = Vector3(0.0, 0.0, -3.2 if bool(spec["is_knife"]) else -100.0)
 	if is_instance_valid(weapon_mesh):
 		weapon_mesh.queue_free()
-	weapon_mesh = MeshInstance3D.new()
-	weapon_mesh.name = "FirstPersonWeapon"
-	var weapon_box := BoxMesh.new()
-	weapon_box.size = (
-		Vector3(0.09, 0.09, 0.85) if bool(spec["is_knife"]) else Vector3(0.18, 0.18, 0.78)
-	)
-	weapon_mesh.mesh = weapon_box
-	weapon_mesh.position = Vector3(0.46, -0.36, -0.72)
-	weapon_mesh.rotation_degrees = Vector3(-4.0, -8.0, 0.0)
-	weapon_mesh.material_override = make_material(spec["color"] as Color, false)
+	weapon_mesh = create_weapon_instance(spec, true, active_weapon_index)
 	camera.add_child(weapon_mesh)
-	status_label.text = "ВЫБРАНО // " + str(spec["name"])
-	status_label.visible = true
-	get_tree().create_timer(0.8).timeout.connect(_hide_status)
 	update_hud()
+
+
+func get_weapon_scene(spec: Dictionary, catalog_index: int) -> PackedScene:
+	var models: Array = KNIFE_MODEL_SCENES if bool(spec["is_knife"]) else FIREARM_MODEL_SCENES
+	var model_index := maxi(catalog_index, 0) % models.size()
+	return models[model_index] as PackedScene
+
+
+func create_weapon_instance(spec: Dictionary, view_model: bool, catalog_index: int = -1) -> Node3D:
+	var weapon_root := Node3D.new()
+	weapon_root.name = "FirstPersonWeapon" if view_model else "BotWeapon"
+	var resolved_index := catalog_index if catalog_index >= 0 else weapon_catalog.find(spec)
+	var weapon_scene := get_weapon_scene(spec, resolved_index)
+	var weapon_model := weapon_scene.instantiate() as Node3D
+	weapon_root.add_child(weapon_model)
+	weapon_root.position = (
+		Vector3(0.46, -0.36, -0.72) if view_model else Vector3(0.36, 0.55, -0.35)
+	)
+	weapon_root.scale = Vector3.ONE * (1.85 if view_model else 1.35)
+	if bool(spec["is_knife"]):
+		weapon_root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	else:
+		weapon_root.rotation_degrees = Vector3(-6.0, -12.0, 0.0) if not view_model else Vector3.ZERO
+	return weapon_root
 
 
 func reload_weapon() -> void:
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
-	if is_instance_valid(reload_player):
-		reload_player.play()
 	if bool(spec["is_knife"]):
-		status_label.text = "НОЖ ГОТОВ // БЛИЖНИЙ БОЙ"
+		knife_player.play()
 	else:
-		current_ammo = int(spec["magazine"])
-		reserve_ammo = int(spec["reserve"])
-		status_label.text = "ПЕРЕЗАРЯДКА // " + str(spec["name"])
-	status_label.visible = true
-	get_tree().create_timer(0.8).timeout.connect(_hide_status)
+		var magazine_size := int(spec["magazine"])
+		var needed := maxi(magazine_size - current_ammo, 0)
+		var loaded := mini(needed, reserve_ammo)
+		current_ammo += loaded
+		reserve_ammo -= loaded
+		reload_player.play()
 	update_hud()
 
 
 func update_bots(delta: float) -> void:
 	for bot_data in bots:
+		if not bool(bot_data.get("alive", true)):
+			continue
 		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
 		if not is_instance_valid(bot):
 			continue
@@ -497,9 +592,7 @@ func bot_fire(bot_data: Dictionary) -> void:
 	bot_data["cooldown"] = maxf(0.28, float(spec["cooldown"]) * 4.0)
 	if not result.is_empty() and result.get("collider") == player:
 		health = maxi(0, health - maxi(2, int(int(spec["damage"]) / 9)))
-		status_label.text = "БОТ ПОПАЛ // " + str(spec["name"])
-		status_label.visible = true
-		get_tree().create_timer(0.5).timeout.connect(_hide_status)
+		hit_player.play()
 
 
 func respawn_player() -> void:
@@ -510,9 +603,6 @@ func respawn_player() -> void:
 	camera_pitch = 0.0
 	player.rotation.y = camera_yaw
 	head.rotation.x = camera_pitch
-	status_label.text = "ВОЗВРАТ В РАУНД // БОТЫ СОХРАНЯЮТ ОРУЖИЕ"
-	status_label.visible = true
-	get_tree().create_timer(1.0).timeout.connect(_hide_status)
 
 
 func fire_weapon() -> void:
@@ -547,20 +637,26 @@ func fire_weapon() -> void:
 			collider = result.get("collider") as Node
 			hit_position = result["position"]
 
+	var bot_hit_state := damage_bot(collider, spec)
 	var hit_target := resolve_target_hit(collider, spec)
-	show_shot_visual(camera.global_position, hit_position, C_AMBER)
+	var hit_anything := bot_hit_state > 0 or hit_target
+	if not bool(spec["is_knife"]):
+		show_shot_visual(camera.global_position, hit_position, C_AMBER)
 	if collider != null:
-		show_impact(hit_position, C_RED if hit_target else C_AMBER)
-	if hit_target:
-		status_label.text = "ЦЕЛЬ НЕЙТРАЛИЗОВАНА // " + str(spec["name"])
+		show_impact(hit_position, C_RED if hit_anything else C_AMBER)
+	if bot_hit_state > 0:
 		hit_player.play()
+		if bot_hit_state == 2:
+			kill_player.play()
+	if hit_target:
+		hit_player.play()
+		kill_player.play()
+	if bool(spec["is_knife"]):
+		knife_player.play()
 	else:
-		status_label.text = "ВЫСТРЕЛ // " + str(spec["name"])
-	status_label.visible = true
-	shot_player.pitch_scale = randf_range(0.96, 1.04)
-	shot_player.play()
-	show_muzzle_flash()
-	get_tree().create_timer(0.45 if not hit_target else 0.9).timeout.connect(_hide_status)
+		shot_player.pitch_scale = randf_range(0.96, 1.04)
+		shot_player.play()
+		show_muzzle_flash()
 	update_hud()
 
 
@@ -607,6 +703,22 @@ func show_impact(impact_position: Vector3, color: Color) -> void:
 	get_tree().create_timer(0.18).timeout.connect(impact.queue_free)
 
 
+func damage_bot(collider: Node, spec: Dictionary) -> int:
+	if collider == null or not collider.is_in_group("bot"):
+		return 0
+	for bot_data in bots:
+		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		if bot != collider or not bool(bot_data.get("alive", true)):
+			continue
+		bot_data["health"] = maxi(0, int(bot_data["health"]) - int(spec["damage"]))
+		if int(bot_data["health"]) <= 0:
+			bot_data["alive"] = false
+			bot.queue_free()
+			return 2
+		return 1
+	return 0
+
+
 func resolve_target_hit(collider: Node, _spec: Dictionary) -> bool:
 	if collider == null or not collider.is_in_group("target"):
 		return false
@@ -617,6 +729,161 @@ func resolve_target_hit(collider: Node, _spec: Dictionary) -> bool:
 	targets.erase(target)
 	targets_left = max(targets_left - 1, 0)
 	return true
+
+
+func update_bomb(delta: float) -> void:
+	if bomb_detonated or bomb_defused:
+		return
+	if bomb_planted:
+		bomb_time_left = maxf(bomb_time_left - delta, 0.0)
+		var bomb_light := bomb_visual.get_node_or_null("BombLight") as OmniLight3D
+		if is_instance_valid(bomb_light):
+			bomb_light.light_energy = 1.0 if fmod(bomb_time_left, 1.0) > 0.35 else 4.5
+		if Input.is_key_pressed(KEY_F) and is_near_bomb():
+			defuse_progress = minf(defuse_progress + delta, 3.0)
+			if defuse_progress >= 3.0:
+				defuse_bomb()
+		else:
+			defuse_progress = 0.0
+		if bomb_time_left <= 0.0 and bomb_planted:
+			detonate_bomb()
+		return
+
+	if bomb_carried and Input.is_key_pressed(KEY_F):
+		var site_index := nearest_bomb_site()
+		if site_index >= 0:
+			plant_progress = minf(plant_progress + delta, 2.5)
+			if plant_progress >= 2.5:
+				plant_bomb(site_index)
+		else:
+			plant_progress = 0.0
+	else:
+		plant_progress = 0.0
+
+
+func nearest_bomb_site() -> int:
+	var player_flat := Vector2(player.global_position.x, player.global_position.z)
+	for index in range(bomb_sites.size()):
+		var site := bomb_sites[index]
+		var site_flat := Vector2(site.global_position.x, site.global_position.z)
+		if player_flat.distance_to(site_flat) <= 3.5:
+			return index
+	return -1
+
+
+func is_near_bomb() -> bool:
+	if not is_instance_valid(bomb_visual):
+		return false
+	var player_flat := Vector2(player.global_position.x, player.global_position.z)
+	var bomb_flat := Vector2(bomb_visual.global_position.x, bomb_visual.global_position.z)
+	return player_flat.distance_to(bomb_flat) <= 3.0
+
+
+func plant_bomb(site_index: int) -> void:
+	bomb_carried = false
+	bomb_planted = true
+	bomb_defused = false
+	bomb_site_index = site_index
+	bomb_time_left = 40.0
+	plant_progress = 0.0
+	bomb_visual = create_bomb_visual()
+	add_child(bomb_visual)
+	bomb_visual.global_position = bomb_sites[site_index].global_position + Vector3(0.0, 0.35, 0.0)
+	plant_player.play()
+
+
+func defuse_bomb() -> void:
+	bomb_planted = false
+	bomb_defused = true
+	defuse_progress = 0.0
+	bomb_time_left = 0.0
+	if is_instance_valid(bomb_visual):
+		bomb_visual.queue_free()
+	bomb_visual = null
+	plant_player.play()
+
+
+func detonate_bomb() -> void:
+	bomb_planted = false
+	bomb_detonated = true
+	bomb_time_left = 0.0
+	var explosion_position := (
+		bomb_visual.global_position if is_instance_valid(bomb_visual) else Vector3.ZERO
+	)
+	if is_instance_valid(bomb_visual):
+		bomb_visual.queue_free()
+	bomb_visual = null
+	explosion_player.play()
+	show_bomb_blast(explosion_position)
+	if player.global_position.distance_to(explosion_position) <= 8.0:
+		health = 0
+	for bot_data in bots:
+		if not bool(bot_data.get("alive", true)):
+			continue
+		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		if bot.global_position.distance_to(explosion_position) <= 8.0:
+			bot_data["alive"] = false
+			bot.queue_free()
+	round_time = 0.0
+
+
+func show_bomb_blast(blast_position: Vector3) -> void:
+	var blast := MeshInstance3D.new()
+	blast.name = "BombBlast"
+	var blast_mesh := SphereMesh.new()
+	blast_mesh.radius = 1.4
+	blast_mesh.height = 2.8
+	blast.mesh = blast_mesh
+	blast.position = blast_position
+	blast.material_override = make_material(C_RED, true)
+	add_child(blast)
+	var blast_light := OmniLight3D.new()
+	blast_light.light_color = C_AMBER
+	blast_light.light_energy = 8.0
+	blast_light.omni_range = 10.0
+	blast_light.position = blast_position
+	add_child(blast_light)
+	get_tree().create_timer(0.25).timeout.connect(blast.queue_free)
+	get_tree().create_timer(0.25).timeout.connect(blast_light.queue_free)
+
+
+func create_bomb_visual() -> Node3D:
+	var bomb_root := Node3D.new()
+	bomb_root.name = "PlantedBomb"
+
+	var body := MeshInstance3D.new()
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 0.28
+	cylinder.bottom_radius = 0.32
+	cylinder.height = 0.22
+	body.mesh = cylinder
+	body.material_override = make_material(C_SAND_SHADOW, false)
+	bomb_root.add_child(body)
+
+	var display := MeshInstance3D.new()
+	var display_mesh := BoxMesh.new()
+	display_mesh.size = Vector3(0.18, 0.08, 0.03)
+	display.mesh = display_mesh
+	display.position = Vector3(0.0, 0.12, -0.25)
+	display.material_override = make_material(C_RED, true)
+	bomb_root.add_child(display)
+
+	var wire := MeshInstance3D.new()
+	var wire_mesh := BoxMesh.new()
+	wire_mesh.size = Vector3(0.05, 0.42, 0.05)
+	wire.mesh = wire_mesh
+	wire.position = Vector3(0.0, 0.28, 0.0)
+	wire.material_override = make_material(C_RED, false)
+	bomb_root.add_child(wire)
+
+	var bomb_light := OmniLight3D.new()
+	bomb_light.name = "BombLight"
+	bomb_light.light_color = C_RED
+	bomb_light.light_energy = 2.0
+	bomb_light.omni_range = 2.5
+	bomb_light.position = Vector3(0.0, 0.35, -0.25)
+	bomb_root.add_child(bomb_light)
+	return bomb_root
 
 
 func create_box(
@@ -826,9 +1093,11 @@ func build_hud() -> void:
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 16)
 	bottom_margin.add_child(bottom_row)
-	var controls := make_label("WASD ДВИЖЕНИЕ · ЛКМ ОГОНЬ · Q/E АРСЕНАЛ · R", 8, C_MUTED)
+	var controls := make_label("WASD · SHIFT БЕГ · SPACE ПРЫЖОК · F БОМБА", 8, C_MUTED)
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_row.add_child(controls)
+	bomb_label = make_label("БОМБА F", 9, C_AMBER)
+	bottom_row.add_child(bomb_label)
 	weapon_slot_label = make_label("01 / 30", 9, C_AMBER)
 	bottom_row.add_child(weapon_slot_label)
 	weapon_label = make_label("FEN-9 COBALT", 9, C_TEXT)
@@ -851,21 +1120,6 @@ func build_hud() -> void:
 	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hud.add_child(crosshair)
 
-	status_label = make_label("SANDSTONE // СИСТЕМА ГОТОВА", 14, C_AMBER)
-	status_label.anchor_left = 0.5
-	status_label.anchor_right = 0.5
-	status_label.anchor_top = 0.5
-	status_label.anchor_bottom = 0.5
-	status_label.offset_left = -240.0
-	status_label.offset_right = 240.0
-	status_label.offset_top = -58.0
-	status_label.offset_bottom = -22.0
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.add_theme_stylebox_override("normal", panel_style(Color("#3B281D"), C_AMBER))
-	status_label.z_index = 5
-	hud.add_child(status_label)
-
 
 func update_hud() -> void:
 	var minutes := floori(round_time / 60.0)
@@ -881,15 +1135,42 @@ func update_hud() -> void:
 	target_label.text = "ЦЕЛИ %02d" % targets_left
 	health_label.text = "HP %03d" % health
 	health_label.add_theme_color_override("font_color", C_GREEN if health > 35 else C_RED)
-	bots_label.text = "БОТЫ %02d" % bots.size()
-	if round_time <= 0.0:
-		status_label.text = "ВРЕМЯ ВЫШЛО // РАУНД ЗАВЕРШЁН"
-		status_label.visible = true
+	bots_label.text = "БОТЫ %02d" % alive_bot_count()
+	update_bomb_hud()
 
 
-func _hide_status() -> void:
-	if is_instance_valid(status_label):
-		status_label.visible = false
+func alive_bot_count() -> int:
+	var count := 0
+	for bot_data in bots:
+		if bool(bot_data.get("alive", true)):
+			count += 1
+	return count
+
+
+func update_bomb_hud() -> void:
+	if not is_instance_valid(bomb_label):
+		return
+	if bomb_detonated:
+		bomb_label.text = "БОМБА ВЗОРВАНА"
+		bomb_label.add_theme_color_override("font_color", C_RED)
+	elif bomb_defused:
+		bomb_label.text = "БОМБА ОБЕЗВРЕЖЕНА"
+		bomb_label.add_theme_color_override("font_color", C_GREEN)
+	elif bomb_planted:
+		if defuse_progress > 0.0:
+			bomb_label.text = "ОБЕЗВРЕЖ. %02d%%" % int(defuse_progress / 3.0 * 100.0)
+		else:
+			bomb_label.text = "БОМБА %02d" % ceili(bomb_time_left)
+		bomb_label.add_theme_color_override("font_color", C_RED)
+	elif bomb_carried:
+		var site_index := nearest_bomb_site()
+		if plant_progress > 0.0:
+			bomb_label.text = "ПЛАНТ %02d%%" % int(plant_progress / 2.5 * 100.0)
+		elif site_index >= 0:
+			bomb_label.text = "F ПЛАНТ"
+		else:
+			bomb_label.text = "БОМБА"
+		bomb_label.add_theme_color_override("font_color", C_AMBER)
 
 
 func exit_to_menu() -> void:
@@ -960,4 +1241,4 @@ func panel_style(fill: Color, border: Color) -> StyleBoxFlat:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		get_tree().quit()
+		get_tree().quit()  # gdlint: ignore=max-file-lines

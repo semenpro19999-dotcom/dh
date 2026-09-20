@@ -52,8 +52,11 @@ content/rigs                  # armature / IK placeholder
 content/animations            # actions / NLA placeholder
 content/maps                  # blockout / greybox placeholder
 content/exports               # reviewed FBX / GLB / QA manifests
-assets                 # JPG key art and original prototype audio used by the native Godot slice
-assets/audio           # procedural WAV: shot, hit, reload, switch and ambient loop
+assets                 # JPG key art, imported CC0 models and external CC0 audio
+assets/audio           # internet-sourced CC0 OGG/WAV: combat, movement, bomb and ambient audio
+assets/models          # Kenney CC0 player and firearm/knife GLB models
+
+docs/ASSET_LICENSES.md # provenance and license ledger for imported binary assets
 ```
 
 `main.gd` строит новый командный центр на native `Control` nodes: Sandstone hero-screen, briefing карты и отдельный арсенал. Кнопки запускают `match.tscn`, где `match.gd` создаёт локальную 3D-арену на `Node3D`, `CharacterBody3D`, `Camera3D`, `RayCast3D` и `StaticBody3D`. `arsenal.gd` является общим data-driven источником 30 слотов, включая 10 ножей.
@@ -62,8 +65,12 @@ assets/audio           # procedural WAV: shot, hit, reload, switch and ambient l
 
 - выстрел игрока использует `RayCast3D`/physics ray, короткий эмиссивный tracer, muzzle flash через `OmniLight3D` и временную impact-вспышку на уничтоженной цели;
 - выстрелы ботов используют тот же tracer, отдельный тихий shot-микс и line-of-sight через physics ray; три бота патрулируют, меняют дистанцию, делают strafing и получают оружие из общего каталога;
-- `assets/audio/ks3_*.wav` — оригинальные процедурные WAV-файлы без внешних runtime-ассетов: player shot, bot shot, hit confirmation, reload, weapon switch и 8-секундный ambient/music loop;
-- HUD показывает `HP`, число ботов, активное оружие, магазин/резерв и оставшиеся цели; размеры root UI растягиваются от базового viewport 1440×900 до минимального окна 800×500;
+- `assets/audio/` содержит подключённые из интернета CC0 OGG: shot, bot shot, hit, kill, reload click, weapon switch, knife, jump, land, footsteps, bomb plant/defuse, explosion и ambient loop; provenance зафиксирован в `docs/ASSET_LICENSES.md`;
+- `assets/models/kenney/` содержит CC0 GLB-модели игроков, огнестрельного оружия и четырёх вариантов ножей; 30 слотов каталога используют модели по кругу;
+- bots имеют отдельный `CapsuleShape3D` hitbox и health state; попадание по `CharacterBody3D` больше не ограничено группой статических целей;
+- матч поддерживает Shift-бег, Space-прыжок, F-плант на двух objective sites с 2,5-секундной установкой, 40-секундным таймером и 3-секундным обезвреживанием;
+- центральный action/status popup удалён: состояние бомбы и матча остаётся в компактном HUD, без перекрытия crosshair;
+- HUD показывает `HP`, число живых ботов, активное оружие, магазин/резерв, состояние бомбы и оставшиеся цели; размеры root UI растягиваются от базового viewport 1440×900 до минимального окна 800×500;
 - полноценный runtime smoke-test требует установленного Godot 4.5+ и выполняется в редакторе/CI проекта; в sandbox этот бинарник отсутствует.
 
 ## 3. Runtime architecture

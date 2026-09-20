@@ -28,15 +28,18 @@
 
 ## Игровой HUD и input contract
 
-`scenes/match.tscn` использует `CanvasLayer` для верхнего таймера, crosshair, status feedback и нижнего оружейного HUD.
+`scenes/match.tscn` использует `CanvasLayer` для верхнего таймера, crosshair и компактного нижнего оружейного/бомбового HUD. Центральный action popup намеренно не используется: он перекрывал прицел после любого действия.
 
 - `WASD` — движение;
+- `Shift` — бег;
+- `Space` — прыжок;
 - `MouseMotion` через `_input()` — yaw игрока и pitch головы;
 - ЛКМ через `_input()` и удержание в `_physics_process()` — стрельба;
 - `RayCast3D` выполняет hit test, а `PhysicsRayQueryParameters3D` служит прямым physics fallback;
 - `Q/E` — переключение всех 30 оружий;
 - `1–0` — первые десять слотов;
 - `R` — перезарядка;
+- `F` — удерживать на objective site для планта или возле бомбы для обезвреживания;
 - `Esc` — deferred-возврат в меню.
 
 Mouse input обрабатывается на `_input()`, а не на `_unhandled_input()`, чтобы CanvasLayer HUD и Control-элементы меню не могли съесть поворот камеры или выстрел.

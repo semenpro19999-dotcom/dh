@@ -176,6 +176,8 @@ WIP → REVIEW_ART → REVIEW_TECH → APPROVED → INTEGRATED → LOCKED
 
 A change to a LOCKED weapon silhouette, collision or map callout requires design review and recorded version bump.
 
+**Current playable integration:** `assets/models/kenney/` содержит проверенные CC0 GLB-модели для ботов, first-person оружия и ножей. Это не заменяет production Blender pipeline: исходники и лицензии ведутся в `docs/ASSET_LICENSES.md`, а отдельные Kenney-модели могут быть заменены на KS3-оригиналы после art lock.
+
 ## 9. Content backlog
 
 ### MVP P0
