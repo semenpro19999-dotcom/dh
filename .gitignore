@@ -1,0 +1,9 @@
+.godot/
+.DS_Store
+*.blend1
+*.tmp
+# Large source assets / exports should use approved LFS or artifact storage.
+content/**/*.fbx
+content/**/*.glb
+content/**/*.wav
+content/**/*.exr
