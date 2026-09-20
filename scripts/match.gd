@@ -556,10 +556,10 @@ func update_bots(delta: float) -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot := live_bot_from_data(bot_data)
+		var bot: CharacterBody3D = live_bot_from_data(bot_data)
 		if not is_instance_valid(bot):
 			continue
-		var to_player := player.global_position - bot.global_position
+		var to_player: Vector3 = player.global_position - bot.global_position
 		var flat_to_player := Vector3(to_player.x, 0.0, to_player.z)
 		var distance := flat_to_player.length()
 		var sees_player := bot_can_see_player(bot)
@@ -671,7 +671,7 @@ func notify_bots_of_noise(noise_position: Vector3, radius: float) -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot := live_bot_from_data(bot_data)
+		var bot: CharacterBody3D = live_bot_from_data(bot_data)
 		if not is_instance_valid(bot):
 			continue
 		if bot.global_position.distance_to(noise_position) > radius:
@@ -692,7 +692,7 @@ func bot_can_see_player(bot: CharacterBody3D) -> bool:
 
 
 func bot_fire(bot_data: Dictionary) -> void:
-	var bot := live_bot_from_data(bot_data)
+	var bot: CharacterBody3D = live_bot_from_data(bot_data)
 	if not is_instance_valid(bot):
 		return
 	var spec: Dictionary = bot_data["weapon"]
@@ -840,7 +840,7 @@ func damage_bot(collider: Node, spec: Dictionary) -> int:
 	var bot_index := 0
 	while bot_index < bots.size():
 		var bot_data: Dictionary = bots[bot_index]
-		var bot := live_bot_from_data(bot_data)
+		var bot: CharacterBody3D = live_bot_from_data(bot_data)
 		if is_instance_valid(bot) and bot == collider and bool(bot_data.get("alive", true)):
 			bot_data["health"] = maxi(0, int(bot_data["health"]) - int(spec["damage"]))
 			if int(bot_data["health"]) <= 0:
@@ -954,7 +954,7 @@ func detonate_bomb() -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-		var bot := live_bot_from_data(bot_data)
+		var bot: CharacterBody3D = live_bot_from_data(bot_data)
 		if not is_instance_valid(bot):
 			continue
 		if bot.global_position.distance_to(explosion_position) <= 8.0:
