@@ -60,6 +60,12 @@ const C_AMBER := Color("#F0B56F")
 const C_RED := Color("#E67C68")
 const C_GREEN := Color("#86D39D")
 
+const BOT_STATE_PATROL := 0
+const BOT_STATE_ATTACK := 1
+const BOT_STATE_SEARCH := 2
+const BOT_STATE_RETREAT := 3
+const BOT_LOW_HEALTH := 35
+
 var player: CharacterBody3D
 var head: Node3D
 var camera: Camera3D
@@ -428,9 +434,14 @@ func create_bot(
 			"health": 100,
 			"alive": true,
 			"cooldown": 0.8,
+			"state": BOT_STATE_PATROL,
+			"state_time": 0.0,
+			"last_seen_position": bot_position,
+			"accuracy": 0.72 + float(bots.size()) * 0.05,
 			"patrol": patrol_points,
 			"patrol_index": 0,
-			"strafe": 1.0 if bots.size() % 2 == 0 else -1.0
+			"strafe": 1.0 if bots.size() % 2 == 0 else -1.0,
+			"strafe_time": 1.0 + float(bots.size()) * 0.4
 		}
 	)
 
@@ -473,6 +484,7 @@ func select_weapon(index: int) -> void:
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
 	current_ammo = int(spec["magazine"])
 	reserve_ammo = int(spec["reserve"])
+	muzzle_flash.light_color = spec["color"] as Color
 	weapon_ray.target_position = Vector3(0.0, 0.0, -3.2 if bool(spec["is_knife"]) else -100.0)
 	if is_instance_valid(weapon_mesh):
 		weapon_mesh.queue_free()
@@ -494,15 +506,36 @@ func create_weapon_instance(spec: Dictionary, view_model: bool, catalog_index: i
 	var weapon_scene := get_weapon_scene(spec, resolved_index)
 	var weapon_model := weapon_scene.instantiate() as Node3D
 	weapon_root.add_child(weapon_model)
+	var weapon_color: Color = spec["color"] as Color
+	tint_weapon_model(weapon_model, weapon_color)
 	weapon_root.position = (
-		Vector3(0.46, -0.36, -0.72) if view_model else Vector3(0.36, 0.55, -0.35)
+		Vector3(0.46, -0.36, -0.78) if view_model else Vector3(0.36, 0.55, -0.35)
 	)
 	weapon_root.scale = Vector3.ONE * (1.85 if view_model else 1.35)
 	if bool(spec["is_knife"]):
 		weapon_root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	else:
-		weapon_root.rotation_degrees = Vector3(-6.0, -12.0, 0.0) if not view_model else Vector3.ZERO
+		# Kenney weapon GLBs expose their muzzle on +Z; turn them into camera -Z.
+		weapon_root.rotation_degrees = Vector3(-6.0, 180.0, 0.0)
 	return weapon_root
+
+
+func tint_weapon_model(weapon_model: Node3D, accent: Color) -> void:
+	var mesh_nodes: Array = weapon_model.find_children("*", "MeshInstance3D", true, false)
+	for mesh_node in mesh_nodes:
+		var mesh_instance := mesh_node as MeshInstance3D
+		if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
+			continue
+		for surface_index in range(mesh_instance.mesh.get_surface_count()):
+			var source_material := mesh_instance.get_active_material(surface_index)
+			if source_material is BaseMaterial3D:
+				var tinted_material := source_material.duplicate() as BaseMaterial3D
+				tinted_material.albedo_color = tinted_material.albedo_color.lerp(accent, 0.42)
+				mesh_instance.set_surface_override_material(surface_index, tinted_material)
+			else:
+				var fallback_material := StandardMaterial3D.new()
+				fallback_material.albedo_color = accent.darkened(0.35)
+				mesh_instance.set_surface_override_material(surface_index, fallback_material)
 
 
 func reload_weapon() -> void:
@@ -531,32 +564,34 @@ func update_bots(delta: float) -> void:
 		var distance := flat_to_player.length()
 		var sees_player := bot_can_see_player(bot)
 		bot_data["cooldown"] = maxf(float(bot_data["cooldown"]) - delta, 0.0)
-		var desired := Vector3.ZERO
-		if sees_player and distance > 0.1:
-			bot.look_at(
-				Vector3(player.global_position.x, bot.global_position.y, player.global_position.z),
-				Vector3.UP
-			)
-			if distance > 14.0:
-				desired = flat_to_player.normalized()
-			elif distance < 7.0:
-				desired = -flat_to_player.normalized()
+		bot_data["state_time"] = maxf(float(bot_data.get("state_time", 0.0)) - delta, 0.0)
+		bot_data["strafe_time"] = maxf(float(bot_data.get("strafe_time", 0.0)) - delta, 0.0)
+
+		if sees_player:
+			bot_data["last_seen_position"] = player.global_position
+			if int(bot_data["health"]) <= BOT_LOW_HEALTH and distance < 18.0:
+				set_bot_state(bot_data, BOT_STATE_RETREAT, 2.5)
 			else:
-				var side := Vector3(-flat_to_player.z, 0.0, flat_to_player.x).normalized()
-				desired = side * float(bot_data["strafe"])
-			if float(bot_data["cooldown"]) <= 0.0 and distance < 45.0:
-				bot_fire(bot_data)
-		else:
-			var patrol: Array = bot_data["patrol"]
-			var patrol_index := int(bot_data["patrol_index"])
-			var patrol_target: Vector3 = patrol[patrol_index]
-			var to_patrol := patrol_target - bot.global_position
-			to_patrol.y = 0.0
-			if to_patrol.length() < 0.8:
-				bot_data["patrol_index"] = (patrol_index + 1) % patrol.size()
-			else:
-				desired = to_patrol.normalized()
-				bot.look_at(bot.global_position + desired, Vector3.UP)
+				set_bot_state(bot_data, BOT_STATE_ATTACK, 0.0)
+		elif int(bot_data["state"]) == BOT_STATE_ATTACK:
+			set_bot_state(bot_data, BOT_STATE_SEARCH, 4.0)
+		elif int(bot_data["state"]) == BOT_STATE_SEARCH and float(bot_data["state_time"]) <= 0.0:
+			set_bot_state(bot_data, BOT_STATE_PATROL, 0.0)
+		elif int(bot_data["state"]) == BOT_STATE_RETREAT and float(bot_data["state_time"]) <= 0.0:
+			set_bot_state(bot_data, BOT_STATE_SEARCH, 2.5)
+		elif (
+			int(bot_data["state"]) == BOT_STATE_PATROL and int(bot_data["health"]) <= BOT_LOW_HEALTH
+		):
+			set_bot_state(bot_data, BOT_STATE_RETREAT, 3.0)
+
+		var desired := bot_desired_direction(bot_data, bot, distance)
+		if (
+			int(bot_data["state"]) == BOT_STATE_ATTACK
+			and sees_player
+			and float(bot_data["cooldown"]) <= 0.0
+			and distance < 45.0
+		):
+			bot_fire(bot_data)
 		var bot_animation := bot_data.get("animation") as AnimationPlayer
 		if is_instance_valid(bot_animation):
 			var animation_name := "walk" if desired.length_squared() > 0.01 else "idle"
@@ -569,6 +604,74 @@ func update_bots(delta: float) -> void:
 		else:
 			bot.velocity.y = -0.2
 		bot.move_and_slide()
+
+
+func set_bot_state(bot_data: Dictionary, state: int, duration: float) -> void:
+	if int(bot_data.get("state", BOT_STATE_PATROL)) == state:
+		return
+	bot_data["state"] = state
+	bot_data["state_time"] = duration
+
+
+func bot_desired_direction(bot_data: Dictionary, bot: CharacterBody3D, distance: float) -> Vector3:
+	var desired := Vector3.ZERO
+	var state := int(bot_data["state"])
+	if state == BOT_STATE_ATTACK:
+		var flat_to_player := player.global_position - bot.global_position
+		flat_to_player.y = 0.0
+		if flat_to_player.length() > 0.1:
+			bot.look_at(
+				Vector3(player.global_position.x, bot.global_position.y, player.global_position.z),
+				Vector3.UP
+			)
+		if distance > 14.0:
+			desired = flat_to_player.normalized()
+		elif distance < 7.0:
+			desired = -flat_to_player.normalized()
+		else:
+			if float(bot_data["strafe_time"]) <= 0.0:
+				bot_data["strafe"] = -float(bot_data["strafe"])
+				bot_data["strafe_time"] = 1.0 + randf() * 1.5
+			desired = Vector3(-flat_to_player.z, 0.0, flat_to_player.x).normalized()
+			desired *= float(bot_data["strafe"])
+	elif state == BOT_STATE_SEARCH or state == BOT_STATE_RETREAT:
+		var target_position: Vector3 = bot_data["last_seen_position"]
+		var to_target := target_position - bot.global_position
+		to_target.y = 0.0
+		if state == BOT_STATE_RETREAT:
+			to_target = -to_target
+		if to_target.length() > 0.9:
+			desired = to_target.normalized()
+			bot.look_at(bot.global_position + desired, Vector3.UP)
+		else:
+			bot.rotate_y(0.04 if state == BOT_STATE_SEARCH else -0.04)
+	else:
+		var patrol: Array = bot_data["patrol"]
+		if not patrol.is_empty():
+			var patrol_index := int(bot_data["patrol_index"])
+			var patrol_target: Vector3 = patrol[patrol_index]
+			var to_patrol := patrol_target - bot.global_position
+			to_patrol.y = 0.0
+			if to_patrol.length() < 0.8:
+				bot_data["patrol_index"] = (patrol_index + 1) % patrol.size()
+			else:
+				desired = to_patrol.normalized()
+				bot.look_at(bot.global_position + desired, Vector3.UP)
+	return desired
+
+
+func notify_bots_of_noise(noise_position: Vector3, radius: float) -> void:
+	for bot_data in bots:
+		if not bool(bot_data.get("alive", true)):
+			continue
+		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		if not is_instance_valid(bot):
+			continue
+		if bot.global_position.distance_to(noise_position) > radius:
+			continue
+		bot_data["last_seen_position"] = noise_position
+		if int(bot_data.get("state", BOT_STATE_PATROL)) != BOT_STATE_ATTACK:
+			set_bot_state(bot_data, BOT_STATE_SEARCH, 3.0)
 
 
 func bot_can_see_player(bot: CharacterBody3D) -> bool:
@@ -585,7 +688,12 @@ func bot_fire(bot_data: Dictionary) -> void:
 	var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
 	var spec: Dictionary = bot_data["weapon"]
 	var from := bot.global_position + Vector3(0.0, 0.75, 0.0)
-	var to := player.global_position + Vector3(0.0, 0.65, 0.0)
+	var aim_target := player.global_position + Vector3(0.0, 0.65, 0.0)
+	if randf() > float(bot_data.get("accuracy", 0.78)):
+		aim_target += Vector3(
+			randf_range(-1.0, 1.0), randf_range(-0.55, 0.55), randf_range(-1.0, 1.0)
+		)
+	var to := aim_target
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 1
 	query.exclude = [bot.get_rid()]
@@ -666,6 +774,7 @@ func fire_weapon() -> void:
 		shot_player.pitch_scale = randf_range(0.96, 1.04)
 		shot_player.play()
 		show_muzzle_flash()
+		notify_bots_of_noise(player.global_position, 24.0)
 	update_hud()
 
 

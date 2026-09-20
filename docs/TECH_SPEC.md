@@ -64,7 +64,7 @@ docs/ASSET_LICENSES.md # provenance and license ledger for imported binary asset
 ### Текущий playable slice: стрельба, звук и боты
 
 - выстрел игрока использует `RayCast3D`/physics ray, короткий эмиссивный tracer, muzzle flash через `OmniLight3D` и временную impact-вспышку на уничтоженной цели;
-- выстрелы ботов используют тот же tracer, отдельный тихий shot-микс и line-of-sight через physics ray; три бота патрулируют, меняют дистанцию, делают strafing и получают оружие из общего каталога;
+- выстрелы ботов используют тот же tracer, отдельный тихий shot-микс и line-of-sight через physics ray; combat AI использует детерминированную FSM `PATROL → ATTACK → SEARCH/RETREAT`, память последней позиции игрока, реакцию на шум выстрела, смену strafing-направления и ограниченную точность вместо читерского 100% aim; три бота получают оружие из общего каталога;
 - `assets/audio/` содержит подключённые из интернета CC0 OGG: shot, bot shot, hit, kill, reload click, weapon switch, knife, jump, land, footsteps, bomb plant/defuse, explosion и ambient loop; provenance зафиксирован в `docs/ASSET_LICENSES.md`;
 - `assets/models/kenney/` содержит CC0 GLB-модели игроков, огнестрельного оружия и четырёх вариантов ножей; 30 слотов каталога используют модели по кругу;
 - bots имеют отдельный `CapsuleShape3D` hitbox и health state; попадание по `CharacterBody3D` больше не ограничено группой статических целей;
@@ -72,6 +72,12 @@ docs/ASSET_LICENSES.md # provenance and license ledger for imported binary asset
 - центральный action/status popup удалён: состояние бомбы и матча остаётся в компактном HUD, без перекрытия crosshair;
 - HUD показывает `HP`, число живых ботов, активное оружие, магазин/резерв, состояние бомбы и оставшиеся цели; размеры root UI растягиваются от базового viewport 1440×900 до минимального окна 800×500;
 - полноценный runtime smoke-test требует установленного Godot 4.5+ и выполняется в редакторе/CI проекта; в sandbox этот бинарник отсутствует.
+
+### Как довести combat AI до production
+
+Текущий slice использует не LLM и не случайный teleport, а детерминированную gameplay-FSM: `PATROL` двигается по маршруту, `ATTACK` держит дистанцию и стреляет, `SEARCH` идёт к последней услышанной/увиденной позиции, `RETREAT` отходит при низком здоровье. Это правильно для realtime-боёв: решение воспроизводимо, дешёво и одинаково на сервере и клиенте.
+
+Следующий production-шаг — добавить к каждому боту `NavigationAgent3D`, общую `NavigationRegion3D` с запечённым navmesh, граф укрытий и server-authoritative perception. `NavigationAgent3D` должен получать только актуальную цель состояния, а не вычисляться через LLM каждый кадр. На сервере остаются проверка LOS, cooldown, damage и переходы FSM; клиент получает реплицированное состояние и animation cue. ML/LLM можно использовать позже офлайн для генерации patrol/cover profiles, но не для frame-by-frame aim или authoritative damage.
 
 ## 3. Runtime architecture
 

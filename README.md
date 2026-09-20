@@ -10,7 +10,7 @@ KS3 — производственный концепт и интерактив�
 - `scenes/main.tscn` — стартовая сцена командного центра;
 - `scenes/match.tscn` — запускаемая локальная игровая сцена;
 - `scripts/main.gd` — нативный интерфейс Control без web-слоя;
-- `scripts/match.gd` — 3D Sandstone arena, mouse look, raycast-стрельба, бег, прыжок, bomb plant/defuse, убиваемые вооружённые боты и HUD;
+- `scripts/match.gd` — 3D Sandstone arena, mouse look, raycast-стрельба, бег, прыжок, bomb plant/defuse, убиваемые вооружённые боты с FSM combat AI и HUD;
 - `scripts/arsenal.gd` — общий data-driven каталог из 30 видов оружия: 20 firearm slots + 10 ножей;
 - `assets/models/kenney/` — импортированные CC0 GLB-модели игроков, огнестрельного оружия и ножей;
 - `assets/audio/` — интернет-ассеты с CC0-лицензией для выстрелов, попаданий, движения, бомбы и ambient; provenance в `docs/ASSET_LICENSES.md`;
