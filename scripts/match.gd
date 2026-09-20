@@ -4,6 +4,12 @@ extends Node3D  # gdlint: ignore=max-public-methods
 ## 1–0 — быстрый выбор слотов, R — перезарядка, Esc — выход в меню.
 
 const Arsenal = preload("res://scripts/arsenal.gd")
+const SHOT_STREAM = preload("res://assets/audio/ks3_shot.wav")
+const BOT_SHOT_STREAM = preload("res://assets/audio/ks3_bot_shot.wav")
+const HIT_STREAM = preload("res://assets/audio/ks3_hit.wav")
+const RELOAD_STREAM = preload("res://assets/audio/ks3_reload.wav")
+const SWITCH_STREAM = preload("res://assets/audio/ks3_switch.wav")
+const MUSIC_STREAM = preload("res://assets/audio/ks3_sandstone_ambient.wav")
 
 const C_SKY := Color("#2E2520")
 const C_SAND_FLOOR := Color("#9B6B45")
@@ -26,8 +32,17 @@ var head: Node3D
 var camera: Camera3D
 var weapon_ray: RayCast3D
 var weapon_mesh: MeshInstance3D
+var muzzle_flash: OmniLight3D
 var targets: Array[StaticBody3D] = []
+var bots: Array[Dictionary] = []
 var weapon_catalog: Array[Dictionary] = Arsenal.WEAPONS.duplicate(true)
+
+var music_player: AudioStreamPlayer
+var shot_player: AudioStreamPlayer
+var bot_shot_player: AudioStreamPlayer
+var hit_player: AudioStreamPlayer
+var reload_player: AudioStreamPlayer
+var switch_player: AudioStreamPlayer
 
 var round_time := 180.0
 var fire_cooldown := 0.0
@@ -45,6 +60,8 @@ var weapon_label: Label
 var weapon_slot_label: Label
 var ammo_label: Label
 var target_label: Label
+var health_label: Label
+var bots_label: Label
 var status_label: Label
 
 
@@ -52,6 +69,8 @@ func _ready() -> void:
 	get_window().min_size = Vector2i(800, 500)
 	build_world()
 	build_player()
+	build_bots()
+	build_audio()
 	build_hud()
 	select_weapon(0)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -85,6 +104,9 @@ func _physics_process(delta: float) -> void:
 	round_time = maxf(round_time - delta, 0.0)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		fire_weapon()
+	update_bots(delta)
+	if health <= 0:
+		respawn_player()
 	update_hud()
 
 
@@ -253,10 +275,114 @@ func build_player() -> void:
 	camera.add_child(weapon_ray)
 	weapon_ray.add_exception(player)
 
+	muzzle_flash = OmniLight3D.new()
+	muzzle_flash.name = "MuzzleFlash"
+	muzzle_flash.light_color = C_AMBER
+	muzzle_flash.light_energy = 4.5
+	muzzle_flash.omni_range = 3.5
+	muzzle_flash.position = Vector3(0.35, -0.28, -1.0)
+	muzzle_flash.visible = false
+	camera.add_child(muzzle_flash)
+
+
+func build_bots() -> void:
+	create_bot(
+		"BotVanta",
+		Vector3(5.0, 1.0, -5.0),
+		1,
+		[Vector3(5.0, 1.0, -5.0), Vector3(9.0, 1.0, -2.0), Vector3(5.0, 1.0, 1.0)]
+	)
+	create_bot(
+		"BotRift",
+		Vector3(13.0, 1.0, 8.0),
+		6,
+		[Vector3(13.0, 1.0, 8.0), Vector3(16.0, 1.0, 4.0), Vector3(12.0, 1.0, 1.0)]
+	)
+	create_bot(
+		"BotTalon",
+		Vector3(-8.0, 1.0, -5.0),
+		12,
+		[Vector3(-8.0, 1.0, -5.0), Vector3(-4.0, 1.0, -3.0), Vector3(-6.0, 1.0, -8.0)]
+	)
+
+
+func create_bot(
+	bot_name: String, bot_position: Vector3, weapon_index: int, patrol_points: Array
+) -> void:
+	var bot := CharacterBody3D.new()
+	bot.name = bot_name
+	bot.position = bot_position
+	bot.collision_layer = 1
+	bot.collision_mask = 1
+	bot.floor_snap_length = 0.2
+	bot.add_to_group("bot")
+	add_child(bot)
+
+	var capsule := CollisionShape3D.new()
+	var capsule_shape := CapsuleShape3D.new()
+	capsule_shape.radius = 0.38
+	capsule_shape.height = 1.8
+	capsule.shape = capsule_shape
+	bot.add_child(capsule)
+
+	var body_mesh := MeshInstance3D.new()
+	var body_shape := CapsuleMesh.new()
+	body_shape.radius = 0.38
+	body_shape.height = 1.8
+	body_mesh.mesh = body_shape
+	body_mesh.material_override = make_material(C_RED, false)
+	bot.add_child(body_mesh)
+
+	var bot_weapon := MeshInstance3D.new()
+	var weapon_shape := BoxMesh.new()
+	weapon_shape.size = Vector3(0.16, 0.16, 0.72)
+	bot_weapon.mesh = weapon_shape
+	bot_weapon.position = Vector3(0.36, 0.55, -0.35)
+	bot_weapon.rotation_degrees = Vector3(-6.0, -12.0, 0.0)
+	bot_weapon.material_override = make_material(
+		weapon_catalog[weapon_index]["color"] as Color, false
+	)
+	bot.add_child(bot_weapon)
+
+	bots.append(
+		{
+			"node": bot,
+			"weapon": weapon_catalog[weapon_index],
+			"cooldown": 0.8,
+			"patrol": patrol_points,
+			"patrol_index": 0,
+			"strafe": 1.0 if bots.size() % 2 == 0 else -1.0
+		}
+	)
+
+
+func build_audio() -> void:
+	music_player = make_audio_player(MUSIC_STREAM, -17.0)
+	music_player.finished.connect(func() -> void: music_player.play())
+	music_player.play()
+	shot_player = make_audio_player(SHOT_STREAM, -7.0)
+	bot_shot_player = make_audio_player(BOT_SHOT_STREAM, -12.0)
+	hit_player = make_audio_player(HIT_STREAM, -5.0)
+	reload_player = make_audio_player(RELOAD_STREAM, -8.0)
+	switch_player = make_audio_player(SWITCH_STREAM, -9.0)
+
+
+func make_audio_player(stream: AudioStream, volume_db: float) -> AudioStreamPlayer:
+	var player_node := AudioStreamPlayer.new()
+	player_node.stream = stream
+	player_node.volume_db = volume_db
+	add_child(player_node)
+	return player_node
+
 
 func select_weapon(index: int) -> void:
 	if weapon_catalog.is_empty():
 		return
+	if (
+		is_instance_valid(switch_player)
+		and active_weapon_index != posmod(index, weapon_catalog.size())
+	):
+		switch_player.play()
 	active_weapon_index = posmod(index, weapon_catalog.size())
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
 	current_ammo = int(spec["magazine"])
@@ -283,6 +409,8 @@ func select_weapon(index: int) -> void:
 
 func reload_weapon() -> void:
 	var spec: Dictionary = weapon_catalog[active_weapon_index]
+	if is_instance_valid(reload_player):
+		reload_player.play()
 	if bool(spec["is_knife"]):
 		status_label.text = "НОЖ ГОТОВ // БЛИЖНИЙ БОЙ"
 	else:
@@ -292,6 +420,99 @@ func reload_weapon() -> void:
 	status_label.visible = true
 	get_tree().create_timer(0.8).timeout.connect(_hide_status)
 	update_hud()
+
+
+func update_bots(delta: float) -> void:
+	for bot_data in bots:
+		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+		if not is_instance_valid(bot):
+			continue
+		var to_player := player.global_position - bot.global_position
+		var flat_to_player := Vector3(to_player.x, 0.0, to_player.z)
+		var distance := flat_to_player.length()
+		var sees_player := bot_can_see_player(bot)
+		bot_data["cooldown"] = maxf(float(bot_data["cooldown"]) - delta, 0.0)
+		var desired := Vector3.ZERO
+		if sees_player and distance > 0.1:
+			bot.look_at(
+				Vector3(player.global_position.x, bot.global_position.y, player.global_position.z),
+				Vector3.UP
+			)
+			if distance > 14.0:
+				desired = flat_to_player.normalized()
+			elif distance < 7.0:
+				desired = -flat_to_player.normalized()
+			else:
+				var side := Vector3(-flat_to_player.z, 0.0, flat_to_player.x).normalized()
+				desired = side * float(bot_data["strafe"])
+			if float(bot_data["cooldown"]) <= 0.0 and distance < 45.0:
+				bot_fire(bot_data)
+		else:
+			var patrol: Array = bot_data["patrol"]
+			var patrol_index := int(bot_data["patrol_index"])
+			var patrol_target: Vector3 = patrol[patrol_index]
+			var to_patrol := patrol_target - bot.global_position
+			to_patrol.y = 0.0
+			if to_patrol.length() < 0.8:
+				bot_data["patrol_index"] = (patrol_index + 1) % patrol.size()
+			else:
+				desired = to_patrol.normalized()
+				bot.look_at(bot.global_position + desired, Vector3.UP)
+		bot.velocity.x = desired.x * 2.4
+		bot.velocity.z = desired.z * 2.4
+		if not bot.is_on_floor():
+			bot.velocity.y -= 18.0 * delta
+		else:
+			bot.velocity.y = -0.2
+		bot.move_and_slide()
+
+
+func bot_can_see_player(bot: CharacterBody3D) -> bool:
+	var from := bot.global_position + Vector3(0.0, 0.75, 0.0)
+	var to := player.global_position + Vector3(0.0, 0.65, 0.0)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1
+	query.exclude = [bot.get_rid()]
+	var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	return not result.is_empty() and result.get("collider") == player
+
+
+func bot_fire(bot_data: Dictionary) -> void:
+	var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
+	var spec: Dictionary = bot_data["weapon"]
+	var from := bot.global_position + Vector3(0.0, 0.75, 0.0)
+	var to := player.global_position + Vector3(0.0, 0.65, 0.0)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1
+	query.exclude = [bot.get_rid()]
+	var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	var hit_position := to
+	if not result.is_empty():
+		hit_position = result["position"]
+	show_shot_visual(from, hit_position, C_RED)
+	if not result.is_empty():
+		show_impact(hit_position, C_RED if result.get("collider") == player else C_AMBER)
+	bot_shot_player.pitch_scale = randf_range(0.92, 1.08)
+	bot_shot_player.play()
+	bot_data["cooldown"] = maxf(0.28, float(spec["cooldown"]) * 4.0)
+	if not result.is_empty() and result.get("collider") == player:
+		health = maxi(0, health - maxi(2, int(int(spec["damage"]) / 9)))
+		status_label.text = "БОТ ПОПАЛ // " + str(spec["name"])
+		status_label.visible = true
+		get_tree().create_timer(0.5).timeout.connect(_hide_status)
+
+
+func respawn_player() -> void:
+	health = 100
+	player.global_position = Vector3(-18.0, 1.0, 13.0)
+	player.velocity = Vector3.ZERO
+	camera_yaw = 0.0
+	camera_pitch = 0.0
+	player.rotation.y = camera_yaw
+	head.rotation.x = camera_pitch
+	status_label.text = "ВОЗВРАТ В РАУНД // БОТЫ СОХРАНЯЮТ ОРУЖИЕ"
+	status_label.visible = true
+	get_tree().create_timer(1.0).timeout.connect(_hide_status)
 
 
 func fire_weapon() -> void:
@@ -308,10 +529,12 @@ func fire_weapon() -> void:
 
 	var shot_distance := 3.2 if bool(spec["is_knife"]) else 100.0
 	var collider: Node = null
+	var hit_position := camera.global_position - camera.global_transform.basis.z * shot_distance
 	weapon_ray.target_position = Vector3(0.0, 0.0, -shot_distance)
 	weapon_ray.force_raycast_update()
 	if weapon_ray.is_colliding():
 		collider = weapon_ray.get_collider() as Node
+		hit_position = weapon_ray.get_collision_point()
 	else:
 		var query := PhysicsRayQueryParameters3D.create(
 			camera.global_position,
@@ -320,16 +543,68 @@ func fire_weapon() -> void:
 		query.collision_mask = 1
 		query.exclude = [player.get_rid()]
 		var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
-		collider = result.get("collider") as Node if not result.is_empty() else null
+		if not result.is_empty():
+			collider = result.get("collider") as Node
+			hit_position = result["position"]
 
 	var hit_target := resolve_target_hit(collider, spec)
+	show_shot_visual(camera.global_position, hit_position, C_AMBER)
+	if collider != null:
+		show_impact(hit_position, C_RED if hit_target else C_AMBER)
 	if hit_target:
 		status_label.text = "ЦЕЛЬ НЕЙТРАЛИЗОВАНА // " + str(spec["name"])
+		hit_player.play()
 	else:
 		status_label.text = "ВЫСТРЕЛ // " + str(spec["name"])
 	status_label.visible = true
+	shot_player.pitch_scale = randf_range(0.96, 1.04)
+	shot_player.play()
+	show_muzzle_flash()
 	get_tree().create_timer(0.45 if not hit_target else 0.9).timeout.connect(_hide_status)
 	update_hud()
+
+
+func show_muzzle_flash() -> void:
+	muzzle_flash.visible = true
+	muzzle_flash.light_energy = 4.5
+	get_tree().create_timer(0.055).timeout.connect(_hide_muzzle_flash)
+
+
+func _hide_muzzle_flash() -> void:
+	if is_instance_valid(muzzle_flash):
+		muzzle_flash.visible = false
+
+
+func show_shot_visual(start: Vector3, end: Vector3, color: Color) -> void:
+	var tracer_mesh := ImmediateMesh.new()
+	var tracer_material := StandardMaterial3D.new()
+	tracer_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tracer_material.albedo_color = color
+	tracer_material.emission_enabled = true
+	tracer_material.emission = color
+	tracer_material.emission_energy_multiplier = 3.0
+	tracer_mesh.surface_begin(Mesh.PRIMITIVE_LINES, tracer_material)
+	tracer_mesh.surface_add_vertex(start)
+	tracer_mesh.surface_add_vertex(start.lerp(end, 0.72))
+	tracer_mesh.surface_end()
+	var tracer := MeshInstance3D.new()
+	tracer.name = "ShotTracer"
+	tracer.mesh = tracer_mesh
+	add_child(tracer)
+	get_tree().create_timer(0.07).timeout.connect(tracer.queue_free)
+
+
+func show_impact(impact_position: Vector3, color: Color) -> void:
+	var impact := MeshInstance3D.new()
+	impact.name = "ImpactFlash"
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.10
+	sphere.height = 0.20
+	impact.mesh = sphere
+	impact.position = impact_position
+	impact.material_override = make_material(color, true)
+	add_child(impact)
+	get_tree().create_timer(0.18).timeout.connect(impact.queue_free)
 
 
 func resolve_target_hit(collider: Node, _spec: Dictionary) -> bool:
@@ -528,6 +803,10 @@ func build_hud() -> void:
 	timer_label = make_label("03:00", 18, C_TEXT)
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top_row.add_child(timer_label)
+	health_label = make_label("HP 100", 10, C_GREEN)
+	top_row.add_child(health_label)
+	bots_label = make_label("БОТЫ 03", 10, C_RED)
+	top_row.add_child(bots_label)
 	top_row.add_child(make_label("●  ПОЛЕВОЙ КАНАЛ · 32 мс", 8, C_TEAL))
 	top_row.add_child(ui_button("ВЫЙТИ", Callable(exit_to_menu), false))
 
@@ -547,9 +826,7 @@ func build_hud() -> void:
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 16)
 	bottom_margin.add_child(bottom_row)
-	var controls := make_label(
-		"W A S D  ДВИЖЕНИЕ    МЫШЬ  КАМЕРА/ОГОНЬ    Q/E  АРСЕНАЛ    R  ПЕРЕЗАРЯДКА", 8, C_MUTED
-	)
+	var controls := make_label("WASD ДВИЖЕНИЕ · ЛКМ ОГОНЬ · Q/E АРСЕНАЛ · R", 8, C_MUTED)
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_row.add_child(controls)
 	weapon_slot_label = make_label("01 / 30", 9, C_AMBER)
@@ -602,6 +879,9 @@ func update_hud() -> void:
 	else:
 		ammo_label.text = "%02d / %02d" % [current_ammo, reserve_ammo]
 	target_label.text = "ЦЕЛИ %02d" % targets_left
+	health_label.text = "HP %03d" % health
+	health_label.add_theme_color_override("font_color", C_GREEN if health > 35 else C_RED)
+	bots_label.text = "БОТЫ %02d" % bots.size()
 	if round_time <= 0.0:
 		status_label.text = "ВРЕМЯ ВЫШЛО // РАУНД ЗАВЕРШЁН"
 		status_label.visible = true
