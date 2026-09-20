@@ -715,16 +715,18 @@ func show_impact(impact_position: Vector3, color: Color) -> void:
 func damage_bot(collider: Node, spec: Dictionary) -> int:
 	if collider == null or not collider.is_in_group("bot"):
 		return 0
-	for bot_data in bots:
+	var bot_index := 0
+	while bot_index < bots.size():
+		var bot_data: Dictionary = bots[bot_index]
 		var bot: CharacterBody3D = bot_data["node"] as CharacterBody3D
-		if bot != collider or not bool(bot_data.get("alive", true)):
-			continue
-		bot_data["health"] = maxi(0, int(bot_data["health"]) - int(spec["damage"]))
-		if int(bot_data["health"]) <= 0:
-			bot_data["alive"] = false
-			bot.queue_free()
-			return 2
-		return 1
+		if bot == collider and bool(bot_data.get("alive", true)):
+			bot_data["health"] = maxi(0, int(bot_data["health"]) - int(spec["damage"]))
+			if int(bot_data["health"]) <= 0:
+				bot_data["alive"] = false
+				bot.queue_free()
+				return 2
+			return 1
+		bot_index += 1
 	return 0
 
 
