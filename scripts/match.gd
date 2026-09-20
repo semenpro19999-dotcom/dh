@@ -671,10 +671,10 @@ func notify_bots_of_noise(noise_position: Vector3, radius: float) -> void:
 	for bot_data in bots:
 		if not bool(bot_data.get("alive", true)):
 			continue
-			var bot := live_bot_from_data(bot_data)
-			if not is_instance_valid(bot):
-				continue
-			if bot.global_position.distance_to(noise_position) > radius:
+		var bot := live_bot_from_data(bot_data)
+		if not is_instance_valid(bot):
+			continue
+		if bot.global_position.distance_to(noise_position) > radius:
 			continue
 		bot_data["last_seen_position"] = noise_position
 		if int(bot_data.get("state", BOT_STATE_PATROL)) != BOT_STATE_ATTACK:
