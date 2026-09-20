@@ -88,13 +88,17 @@ func _physics_process(delta: float) -> void:
 	update_hud()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		camera_yaw -= event.relative.x * mouse_sensitivity
-		camera_pitch = clampf(camera_pitch - event.relative.y * mouse_sensitivity, -1.35, 1.35)
-		player.rotation.y = camera_yaw
-		head.rotation.x = camera_pitch
-	elif event is InputEventKey and event.pressed and not event.echo:
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			camera_yaw -= event.relative.x * mouse_sensitivity
+			camera_pitch = clampf(camera_pitch - event.relative.y * mouse_sensitivity, -1.35, 1.35)
+			player.rotation.y = camera_yaw
+			head.rotation.x = camera_pitch
+			get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			exit_to_menu()
 		elif event.keycode == KEY_Q:
@@ -107,14 +111,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			select_weapon(event.keycode - KEY_1)
 		elif event.keycode == KEY_0:
 			select_weapon(9)
-	elif event is InputEventMouseButton and event.pressed:
-		if (
-			event.button_index == MOUSE_BUTTON_LEFT
-			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-		):
-			fire_weapon()
-		elif event.button_index == MOUSE_BUTTON_LEFT:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			else:
+				fire_weapon()
+			get_viewport().set_input_as_handled()
 
 
 func build_world() -> void:
@@ -155,7 +161,7 @@ func build_world() -> void:
 	create_objective_zone("ObjectiveA", Vector3(-13.0, 0.03, -6.0), C_TEAL)
 	create_objective_zone("ObjectiveB", Vector3(13.0, 0.03, 6.0), C_AMBER)
 
-	create_target("TargetA", Vector3(-9.0, 1.0, -8.0))
+	create_target("TargetA", Vector3(-18.0, 1.0, 4.0))
 	create_target("TargetB", Vector3(13.0, 1.0, 8.0))
 	create_target("TargetC", Vector3(4.0, 1.0, -11.0))
 
@@ -295,22 +301,47 @@ func fire_weapon() -> void:
 	if not bool(spec["is_knife"]) and current_ammo <= 0:
 		reload_weapon()
 		return
+
 	fire_cooldown = float(spec["cooldown"])
 	if not bool(spec["is_knife"]):
 		current_ammo -= 1
+
+	var shot_distance := 3.2 if bool(spec["is_knife"]) else 100.0
+	var collider: Node = null
+	weapon_ray.target_position = Vector3(0.0, 0.0, -shot_distance)
 	weapon_ray.force_raycast_update()
 	if weapon_ray.is_colliding():
-		var collider: Node = weapon_ray.get_collider() as Node
-		if collider != null and collider.is_in_group("target"):
-			var target: StaticBody3D = collider as StaticBody3D
-			if is_instance_valid(target):
-				target.queue_free()
-				targets.erase(target)
-				targets_left = max(targets_left - 1, 0)
-				status_label.text = "ЦЕЛЬ НЕЙТРАЛИЗОВАНА // " + str(spec["name"])
-				status_label.visible = true
-				get_tree().create_timer(0.9).timeout.connect(_hide_status)
-		update_hud()
+		collider = weapon_ray.get_collider() as Node
+	else:
+		var query := PhysicsRayQueryParameters3D.create(
+			camera.global_position,
+			camera.global_position - camera.global_transform.basis.z * shot_distance
+		)
+		query.collision_mask = 1
+		query.exclude = [player.get_rid()]
+		var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+		collider = result.get("collider") as Node if not result.is_empty() else null
+
+	var hit_target := resolve_target_hit(collider, spec)
+	if hit_target:
+		status_label.text = "ЦЕЛЬ НЕЙТРАЛИЗОВАНА // " + str(spec["name"])
+	else:
+		status_label.text = "ВЫСТРЕЛ // " + str(spec["name"])
+	status_label.visible = true
+	get_tree().create_timer(0.45 if not hit_target else 0.9).timeout.connect(_hide_status)
+	update_hud()
+
+
+func resolve_target_hit(collider: Node, _spec: Dictionary) -> bool:
+	if collider == null or not collider.is_in_group("target"):
+		return false
+	var target: StaticBody3D = collider as StaticBody3D
+	if not is_instance_valid(target):
+		return false
+	target.queue_free()
+	targets.erase(target)
+	targets_left = max(targets_left - 1, 0)
+	return true
 
 
 func create_box(
@@ -325,6 +356,8 @@ func create_box(
 	body.name = node_name
 	body.position = position
 	body.rotation_degrees = rotation_degrees
+	body.collision_layer = 1
+	body.collision_mask = 1
 	add_child(body)
 
 	var mesh := MeshInstance3D.new()
@@ -430,6 +463,8 @@ func create_target(target_name: String, position: Vector3) -> void:
 	var target := StaticBody3D.new()
 	target.name = target_name
 	target.position = position
+	target.collision_layer = 1
+	target.collision_mask = 1
 	target.add_to_group("target")
 	add_child(target)
 	targets.append(target)

@@ -1,38 +1,35 @@
 extends Control  # gdlint: ignore=max-public-methods
-## KS3 — redesigned native command center for the Sandstone slice.
-## The menu is intentionally data-driven and keeps all navigation inside Godot.
+## KS3 — Sandstone: полноэкранный tactical briefing вместо старого command center.
+## Главное действие всегда ведёт в 3D-матч, остальные pages открываются как overlays.
 
 const Arsenal = preload("res://scripts/arsenal.gd")
-const HERO_TEXTURE = preload("res://assets/ks3-riftfall-hero.jpg")
+const MENU_TEXTURE = preload("res://assets/sandstone-menu.jpg")
 const WEAPON_TEXTURE = preload("res://assets/fen-9-cobalt.jpg")
 
-const C_BG := Color("#120D0A")
-const C_DEEP := Color("#0B0807")
-const C_PANEL := Color("#211611")
-const C_PANEL_2 := Color("#2C1D15")
+const C_BG := Color("#120B08")
+const C_PANEL := Color("#1A100B")
+const C_PANEL_LIGHT := Color("#2B1A11")
 const C_SAND := Color("#C58A55")
-const C_GOLD := Color("#F0B56F")
-const C_TEAL := Color("#68D0C5")
-const C_TEXT := Color("#FFF1D5")
-const C_MUTED := Color("#C5AA8B")
-const C_DIM := Color("#806D5D")
-const C_RED := Color("#DF7A68")
-const C_GREEN := Color("#86D39D")
+const C_GOLD := Color("#F3B875")
+const C_TEAL := Color("#67D7CC")
+const C_TEXT := Color("#FFF0D4")
+const C_MUTED := Color("#C7AA87")
+const C_DIM := Color("#7C6654")
+const C_GREEN := Color("#8AD39A")
+const C_RED := Color("#E57C68")
 
-var page_host: VBoxContainer
+var page_root: Control
 var page_scroll: ScrollContainer
-var page_title: Label
 var toast: Label
 var toast_timer: Timer
 var nav_buttons: Dictionary = {}
 var current_page := "overview"
 
 var pages := {
-	"overview": "Операционный центр",
-	"matchmaking": "Запуск операции",
-	"map": "Карта Sandstone",
+	"overview": "Операция",
+	"map": "Карта",
 	"loadout": "Арсенал",
-	"training": "Подготовка",
+	"training": "Тренировка",
 	"profile": "Оператор",
 	"settings": "Настройки",
 }
@@ -45,213 +42,138 @@ func _ready() -> void:
 
 
 func build_shell() -> void:
-	var backdrop := TextureRect.new()
-	backdrop.texture = HERO_TEXTURE
-	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	backdrop.modulate = Color(0.48, 0.32, 0.22, 0.48)
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(backdrop)
+	var background := TextureRect.new()
+	background.texture = MENU_TEXTURE
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.modulate = Color(0.86, 0.68, 0.48, 0.82)
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(background)
 
-	var tint := ColorRect.new()
-	tint.color = Color(0.05, 0.025, 0.018, 0.78)
-	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(tint)
+	var shade := ColorRect.new()
+	shade.color = Color(0.045, 0.022, 0.012, 0.58)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
 
-	var shell := HBoxContainer.new()
-	shell.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shell.offset_left = 18.0
-	shell.offset_top = 18.0
-	shell.offset_right = -18.0
-	shell.offset_bottom = -18.0
-	shell.add_theme_constant_override("separation", 10)
-	add_child(shell)
+	var top_rule := ColorRect.new()
+	top_rule.color = Color(0.95, 0.66, 0.38, 0.36)
+	top_rule.anchor_right = 1.0
+	top_rule.offset_top = 76.0
+	top_rule.offset_bottom = 77.0
+	top_rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(top_rule)
 
-	var sidebar := PanelContainer.new()
-	sidebar.custom_minimum_size = Vector2(238, 0)
-	sidebar.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sidebar.add_theme_stylebox_override("panel", panel_style(Color("#140D09D9"), Color("#6C4933")))
-	shell.add_child(sidebar)
-	build_sidebar(sidebar)
-
-	var main_column := VBoxContainer.new()
-	main_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_column.add_theme_constant_override("separation", 8)
-	shell.add_child(main_column)
-	build_header(main_column)
+	build_header()
 
 	page_scroll = ScrollContainer.new()
-	page_scroll.name = "PageScroll"
-	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_scroll.name = "BriefingPages"
+	page_scroll.anchor_right = 1.0
+	page_scroll.anchor_bottom = 1.0
+	page_scroll.offset_left = 34.0
+	page_scroll.offset_top = 92.0
+	page_scroll.offset_right = -34.0
+	page_scroll.offset_bottom = -78.0
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	main_column.add_child(page_scroll)
+	add_child(page_scroll)
 
-	var page_margin := MarginContainer.new()
-	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	set_margins(page_margin, 4, 4, 0, 4)
-	page_scroll.add_child(page_margin)
-	page_host = VBoxContainer.new()
-	page_host.name = "PageHost"
-	page_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_host.add_theme_constant_override("separation", 10)
-	page_margin.add_child(page_host)
+	page_root = VBoxContainer.new()
+	page_root.name = "PageRoot"
+	page_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_root.add_theme_constant_override("separation", 12)
+	page_scroll.add_child(page_root)
 
-	var footer := make_label(
-		"KS3 // SANDSTONE BUILD 0.9.5     ·     СТАТУС СИСТЕМЫ: ОНЛАЙН     ·     СЕВЕР ЕВРОПЫ / 32 мс",
-		8,
-		C_DIM
-	)
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	main_column.add_child(footer)
+	var footer := PanelContainer.new()
+	footer.anchor_top = 1.0
+	footer.anchor_right = 1.0
+	footer.anchor_bottom = 1.0
+	footer.offset_left = 24.0
+	footer.offset_top = -60.0
+	footer.offset_right = -24.0
+	footer.offset_bottom = -18.0
+	footer.add_theme_stylebox_override("panel", panel_style(Color("#120B0BE8"), Color("#745038")))
+	add_child(footer)
+	var footer_margin := MarginContainer.new()
+	set_margins(footer_margin, 12, 14, 7, 7)
+	footer.add_child(footer_margin)
+	var footer_row := HBoxContainer.new()
+	footer_row.add_theme_constant_override("separation", 14)
+	footer_margin.add_child(footer_row)
+	var footer_status := make_label("●  ПОЛЕ ГОТОВО", 8, C_TEAL)
+	footer_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer_row.add_child(footer_status)
+	footer_row.add_child(make_label("SANDSTONE  ·  44 × 32 м", 8, C_MUTED))
+	footer_row.add_child(make_label("30 ОРУЖИЙ  /  10 НОЖЕЙ", 8, C_GOLD))
+	footer_row.add_child(make_label("BUILD 0.9.5", 8, C_DIM))
 
 	toast = make_label("", 10, C_TEXT)
 	toast.visible = false
-	toast.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	toast.offset_left = -314.0
-	toast.offset_top = -72.0
-	toast.offset_right = -24.0
-	toast.offset_bottom = -30.0
+	toast.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	toast.offset_left = 260.0
+	toast.offset_right = -260.0
+	toast.offset_top = 84.0
+	toast.offset_bottom = 120.0
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	toast.add_theme_stylebox_override("normal", panel_style(Color("#2A2118EE"), C_GOLD))
-	toast.z_index = 20
+	toast.add_theme_stylebox_override("normal", panel_style(Color("#21150EEF"), C_GOLD))
+	toast.z_index = 10
 	add_child(toast)
 
 	toast_timer = Timer.new()
 	toast_timer.one_shot = true
-	toast_timer.wait_time = 2.4
+	toast_timer.wait_time = 2.2
 	toast_timer.timeout.connect(_hide_toast)
 	add_child(toast_timer)
 
 
-func build_sidebar(sidebar: PanelContainer) -> void:
-	var margin := MarginContainer.new()
-	set_margins(margin, 14, 14, 14, 12)
-	sidebar.add_child(margin)
-	var sidebar_scroll := ScrollContainer.new()
-	sidebar_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sidebar_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	margin.add_child(sidebar_scroll)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
-	sidebar_scroll.add_child(box)
+func build_header() -> void:
+	var header := HBoxContainer.new()
+	header.anchor_right = 1.0
+	header.offset_left = 26.0
+	header.offset_top = 18.0
+	header.offset_right = -26.0
+	header.offset_bottom = 64.0
+	header.add_theme_constant_override("separation", 12)
+	add_child(header)
 
-	var brand := HBoxContainer.new()
-	brand.add_theme_constant_override("separation", 10)
-	var mark := make_label("S³", 19, C_GOLD)
-	mark.custom_minimum_size = Vector2(42, 38)
-	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	mark.add_theme_stylebox_override("normal", panel_style(Color("#332116"), C_GOLD))
-	brand.add_child(mark)
-	var brand_copy := VBoxContainer.new()
-	brand_copy.add_child(make_label("SANDSTONE", 17, C_TEXT))
-	brand_copy.add_child(make_label("KS3 // ПОЛЕВОЙ ЦЕНТР", 8, C_MUTED))
-	brand.add_child(brand_copy)
-	box.add_child(brand)
+	var brand := VBoxContainer.new()
+	brand.custom_minimum_size = Vector2(190, 0)
+	brand.add_child(make_label("SANDSTONE", 20, C_TEXT))
+	brand.add_child(make_label("KS3 // ОПЕРАЦИОННЫЙ БРЕФИНГ", 8, C_GOLD))
+	header.add_child(brand)
 
-	var rule := ColorRect.new()
-	rule.color = C_SAND
-	rule.custom_minimum_size = Vector2(0, 1)
-	box.add_child(rule)
-	box.add_child(make_label("", 5, C_DIM))
-	box.add_child(make_label("●  СЕТЬ ОНЛАЙН     СЕЗОН 03", 8, C_TEAL))
-	box.add_child(make_label("", 8, C_DIM))
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 4)
+	nav.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(nav)
+	add_nav_button(nav, "overview", "ОПЕРАЦИЯ")
+	add_nav_button(nav, "map", "КАРТА")
+	add_nav_button(nav, "loadout", "АРСЕНАЛ")
+	add_nav_button(nav, "training", "ТРЕНИРОВКА")
 
-	var groups: Array = [
-		[
-			"ОПЕРАЦИИ",
-			[
-				["overview", "▦", "Центр"],
-				["matchmaking", "▶", "Играть"],
-				["map", "⌁", "Карта Sandstone"]
-			]
-		],
-		["АРСЕНАЛ", [["loadout", "▣", "30 видов оружия"], ["training", "⊙", "Тренировка"]]],
-		["СИСТЕМА", [["profile", "◉", "Оператор"], ["settings", "⚙", "Настройки"]]],
-	]
-	for group in groups:
-		box.add_child(make_label(group[0], 8, C_DIM))
-		for item in group[1]:
-			var page_id: String = str(item[0])
-			var nav := nav_button(page_id, str(item[1]), str(item[2]))
-			box.add_child(nav)
-		box.add_child(make_label("", 3, C_DIM))
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(spacer)
-
-	var mission := PanelContainer.new()
-	mission.custom_minimum_size = Vector2(0, 112)
-	mission.add_theme_stylebox_override("panel", panel_style(Color("#332117"), C_SAND))
-	var mission_box := VBoxContainer.new()
-	mission_box.add_theme_constant_override("separation", 4)
-	mission.add_child(mission_box)
-	mission_box.add_child(make_label("АКТИВНАЯ ОПЕРАЦИЯ", 8, C_GOLD))
-	mission_box.add_child(make_label("SANDSTONE\nРАЗОМКНУТЬ ЦЕНТР", 15, C_TEXT))
-	mission_box.add_child(make_label("3 цели · 03:00 · 2 объекта", 8, C_MUTED))
-	mission_box.add_child(
-		ui_button("ОТКРЫТЬ БРИФИНГ", Callable(func() -> void: show_page("map")), false)
+	var connection := VBoxContainer.new()
+	connection.custom_minimum_size = Vector2(145, 0)
+	connection.add_child(make_label("●  СЕТЬ ОНЛАЙН", 8, C_TEAL))
+	connection.add_child(make_label("СЕВЕР ЕВРОПЫ · 32 мс", 8, C_MUTED))
+	header.add_child(connection)
+	header.add_child(
+		ui_button("NIKO//ZERO  ›", Callable(func() -> void: show_page("profile")), false)
 	)
-	box.add_child(mission)
-
-	var profile := Button.new()
-	profile.text = "●  NIKO//ZERO\n    В ПОЛЕ / ГОТОВ"
-	profile.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	profile.custom_minimum_size = Vector2(0, 44)
-	profile.add_theme_font_size_override("font_size", 10)
-	profile.add_theme_color_override("font_color", C_TEXT)
-	profile.add_theme_stylebox_override("normal", panel_style(Color("#1D130E"), Color("#4D3426")))
-	profile.add_theme_stylebox_override("hover", panel_style(Color("#392419"), C_GOLD))
-	profile.pressed.connect(func() -> void: show_page("profile"))
-	box.add_child(profile)
 
 
-func build_header(main_column: VBoxContainer) -> void:
-	var header := PanelContainer.new()
-	header.custom_minimum_size = Vector2(0, 66)
-	header.add_theme_stylebox_override("panel", panel_style(Color("#130C09DD"), Color("#6C4933")))
-	main_column.add_child(header)
-	var margin := MarginContainer.new()
-	set_margins(margin, 18, 14, 10, 10)
-	header.add_child(margin)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
-	page_title = make_label("SANDSTONE / ОПЕРАЦИОННЫЙ ЦЕНТР", 10, C_TEXT)
-	page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(page_title)
-	row.add_child(make_label("СЕВЕР ЕВРОПЫ\n32 мс", 8, C_TEAL))
-	row.add_child(ui_button("◌", Callable(func() -> void: notify("Нет новых сообщений")), false))
-	row.add_child(ui_button("niko//zero  ›", Callable(func() -> void: show_page("profile")), false))
-
-
-func nav_button(id: String, icon: String, label: String) -> Button:
-	var button := Button.new()
-	button.text = icon + "   " + label
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+func add_nav_button(parent: HBoxContainer, id: String, text: String) -> void:
+	var button := ui_button(text, Callable(func() -> void: show_page(id)), false)
 	button.custom_minimum_size = Vector2(0, 34)
-	button.add_theme_font_size_override("font_size", 10)
-	button.add_theme_color_override("font_color", C_MUTED)
-	button.add_theme_color_override("font_hover_color", C_TEXT)
-	button.add_theme_stylebox_override("normal", panel_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
-	button.add_theme_stylebox_override("hover", panel_style(Color("#382319"), Color("#6B4933")))
-	button.pressed.connect(func() -> void: show_page(id))
+	parent.add_child(button)
 	nav_buttons[id] = button
-	return button
 
 
 func show_page(id: String) -> void:
 	if not pages.has(id):
 		id = "overview"
 	current_page = id
-	page_title.text = "SANDSTONE / " + str(pages[id]).to_upper()
 	for key in nav_buttons:
 		var button: Button = nav_buttons[key]
 		var active: bool = key == id
@@ -259,7 +181,7 @@ func show_page(id: String) -> void:
 		button.add_theme_stylebox_override(
 			"normal",
 			panel_style(
-				Color("#382319") if active else Color(0, 0, 0, 0),
+				Color("#4A2E1B") if active else Color(0, 0, 0, 0),
 				C_GOLD if active else Color(0, 0, 0, 0)
 			)
 		)
@@ -268,7 +190,7 @@ func show_page(id: String) -> void:
 
 
 func _clear_page() -> void:
-	for child in page_host.get_children():
+	for child in page_root.get_children():
 		child.queue_free()
 
 
@@ -276,8 +198,6 @@ func _render_page(id: String) -> void:
 	match id:
 		"overview":
 			build_overview()
-		"matchmaking":
-			build_matchmaking()
 		"map":
 			build_map_page()
 		"loadout":
@@ -294,402 +214,257 @@ func _render_page(id: String) -> void:
 
 
 func build_overview() -> void:
-	page_heading(
-		"ОПЕРАЦИОННЫЙ ЦЕНТР",
-		"ГОРОД ПЕСКА",
-		"Sandstone — новый локальный полигон KS3. Изучи маршруты, выбери оружие и зайди в раунд."
-	)
-	var hero := PanelContainer.new()
-	hero.custom_minimum_size = Vector2(0, 270)
-	hero.add_theme_stylebox_override("panel", panel_style(Color("#1A100BDD"), C_SAND))
-	var hero_row := HBoxContainer.new()
-	hero.add_child(hero_row)
-	var hero_image := make_image(HERO_TEXTURE, 248, Color(0.78, 0.59, 0.42, 0.86))
-	hero_image.custom_minimum_size = Vector2(250, 248)
-	hero_row.add_child(hero_image)
-	var hero_copy := VBoxContainer.new()
-	hero_copy.add_theme_constant_override("separation", 8)
-	hero_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_row.add_child(hero_copy)
-	hero_copy.add_child(make_label("—  СЕЗОН 03  //  ПОЛЕВОЙ БРИФИНГ", 9, C_GOLD))
-	hero_copy.add_child(make_label("SANDSTONE", 31, C_TEXT))
-	hero_copy.add_child(
+	var layout := HBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 18)
+	page_root.add_child(layout)
+
+	var command := VBoxContainer.new()
+	command.custom_minimum_size = Vector2(350, 0)
+	command.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	command.add_theme_constant_override("separation", 10)
+	layout.add_child(command)
+	command.add_child(make_label("01  //  ОПЕРАЦИЯ SANDSTONE", 9, C_GOLD))
+	command.add_child(make_label("ГОРОД\nПЕСКА", 45, C_TEXT))
+	command.add_child(
 		make_label(
-			(
-				"Арки, рынки, башни и длинные линии между стенами. "
-				+ "Карта построена вокруг трёх маршрутов и центральной площади."
-			),
-			11,
+			"Три маршрута. Две точки контроля. Один шанс прочитать поле раньше противника.",
+			12,
 			C_MUTED
 		)
 	)
-	var hero_buttons := HBoxContainer.new()
-	hero_buttons.add_theme_constant_override("separation", 8)
-	hero_buttons.add_child(ui_button("▶  НАЙТИ МАТЧ", Callable(launch_match), true))
-	hero_buttons.add_child(
-		ui_button("БРИФИНГ КАРТЫ", Callable(func() -> void: show_page("map")), false)
+	command.add_child(make_label("ЛОКАЛЬНЫЙ 3D-PLAYABLE SLICE", 8, C_TEAL))
+	command.add_child(ui_button("▶  ВОЙТИ В РАУНД", Callable(launch_match), true))
+	command.add_child(
+		ui_button("ОТКРЫТЬ ПОЛЕВОЙ БРИФИНГ", Callable(func() -> void: show_page("map")), false)
 	)
-	hero_copy.add_child(hero_buttons)
-	hero_copy.add_child(make_label("3 ЦЕЛИ     2 ОБЪЕКТА     30 ОРУЖИЙ     10 НОЖЕЙ", 8, C_TEAL))
-	page_host.add_child(hero)
 
-	var metrics := HBoxContainer.new()
-	metrics.add_theme_constant_override("separation", 10)
-	metrics.add_child(stat_card("ПОЛЕ", "SANDSTONE", "ГОРОД-КРЕПОСТ", C_GOLD))
-	metrics.add_child(stat_card("АРСЕНАЛ", "30", "10 НОЖЕЙ В КАТАЛОГЕ", C_TEAL))
-	metrics.add_child(stat_card("КАМЕРА", "360°", "МЫШЬ / FPS ОБЗОР", C_GREEN))
-	page_host.add_child(metrics)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	command.add_child(spacer)
+	var command_note := PanelContainer.new()
+	command_note.add_theme_stylebox_override("panel", panel_style(Color("#1C100AE0"), C_SAND))
+	var note_box := VBoxContainer.new()
+	note_box.add_theme_constant_override("separation", 4)
+	command_note.add_child(note_box)
+	note_box.add_child(make_label("СИСТЕМА ГОТОВА", 8, C_TEAL))
+	note_box.add_child(make_label("МЫШЬ  КАМЕРА / ОГОНЬ\nQ / E  ПЕРЕКЛЮЧЕНИЕ АРСЕНАЛА", 9, C_TEXT))
+	command.add_child(command_note)
 
-	var lower := HBoxContainer.new()
-	lower.add_theme_constant_override("separation", 10)
-	var brief := make_card("СЕГОДНЯ НА ЛИНИИ", "Короткий план", 170)
-	brief[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	(
-		brief[1]
-		. add_child(
-			make_label(
-				"01  ВОЗЬМИ ЦЕНТРАЛЬНЫЙ ДВОР\n02  ПРОВЕРЬ ЗАПАДНЫЙ РЫНОК\n03  НЕ ОТДАВАЙ ВОСТОЧНУЮ ЦИТАДЕЛЬ",
-				10,
-				C_TEXT
-			)
-		)
+	var intel := VBoxContainer.new()
+	intel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	intel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	intel.add_theme_constant_override("separation", 10)
+	layout.add_child(intel)
+
+	var briefing := PanelContainer.new()
+	briefing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	briefing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	briefing.custom_minimum_size = Vector2(0, 360)
+	briefing.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0AE8"), C_GOLD))
+	intel.add_child(briefing)
+	var briefing_box := VBoxContainer.new()
+	briefing_box.add_theme_constant_override("separation", 7)
+	briefing.add_child(briefing_box)
+	var hero := make_image(MENU_TEXTURE, 210, Color(0.95, 0.78, 0.56, 0.78))
+	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	briefing_box.add_child(hero)
+	briefing_box.add_child(
+		make_label("ЦЕНТРАЛЬНЫЙ ДВОР  ·  WEST MARKET  ·  EAST CITADEL", 9, C_GOLD)
 	)
-	brief[1].add_child(
-		ui_button("ПОКАЗАТЬ МАРШРУТЫ  →", Callable(func() -> void: show_page("map")), false)
-	)
-	lower.add_child(brief[0])
-	var loadout := make_card("БЫСТРЫЙ ДОСТУП", "Снаряжение", 170)
-	loadout[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	loadout[1].add_child(make_label("FEN-9 COBALT\nVANTA EDGE\n+ 28 СЛОТОВ АРСЕНАЛА", 10, C_TEXT))
-	loadout[1].add_child(
-		ui_button("ОТКРЫТЬ АРСЕНАЛ  →", Callable(func() -> void: show_page("loadout")), false)
-	)
-	lower.add_child(loadout[0])
-	page_host.add_child(lower)
+	briefing_box.add_child(make_label("ТЁПЛЫЙ КАМЕНЬ / ХОЛОДНЫЙ СИГНАЛ", 13, C_TEXT))
 
-
-func build_matchmaking() -> void:
-	page_heading("ОПЕРАЦИИ", "ЗАПУСК МАТЧА", "Быстрый вход в локальный 3D-срез Sandstone.")
-	var launch := make_card("ВЫБРАННАЯ ОПЕРАЦИЯ", "SANDSTONE // РЕЙТИНГ 5×5", 250)
-	launch[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	launch[1].add_child(make_image(HERO_TEXTURE, 130, Color(0.72, 0.48, 0.32, 0.72)))
-	launch[1].add_child(
-		make_label(
-			"ГОРОД-КРЕПОСТЬ     44 × 32 м\nТРЁХЛУЧЕВАЯ СХЕМА     ЗАПАДНЫЙ РЫНОК / ЦЕНТР / ЦИТАДЕЛЬ",
-			9,
-			C_MUTED
-		)
-	)
-	launch[1].add_child(ui_button("▶  ВОЙТИ В SANDSTONE", Callable(launch_match), true))
-	page_host.add_child(launch[0])
-
-	var modes := HBoxContainer.new()
-	modes.add_theme_constant_override("separation", 10)
-	for mode in ["РЕЙТИНГ 5×5", "КАЗУАЛ", "ДУЭЛЬ"]:
-		var card := make_card("РЕЖИМ", mode, 130)
-		card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card[1].add_child(make_label("ЛОКАЛЬНЫЙ ПРОТОТИП\n3 цели · 1 игрок", 9, C_MUTED))
-		card[1].add_child(
-			ui_button(
-				"ВЫБРАТЬ", Callable(func() -> void: notify(mode + " выбран")), mode == "РЕЙТИНГ 5×5"
-			)
-		)
-		modes.add_child(card[0])
-	page_host.add_child(modes)
+	var intel_row := HBoxContainer.new()
+	intel_row.add_theme_constant_override("separation", 10)
+	intel.add_child(intel_row)
+	intel_row.add_child(info_card("АРСЕНАЛ", "30", "10 НОЖЕЙ", C_TEAL, "loadout"))
+	intel_row.add_child(info_card("ЦЕЛИ", "03", "A / B / TRAINING", C_GOLD, "map"))
+	intel_row.add_child(info_card("КАМЕРА", "360°", "MOUSE LOOK", C_GREEN, "training"))
 
 
 func build_map_page() -> void:
-	page_heading(
-		"КАРТА // SANDSTONE",
-		"ПОЛЕВОЙ БРИФИНГ",
-		"Референсная карта-песчаник: тесные линии, открытый центр и вертикальный контроль."
-	)
-	var map_card := PanelContainer.new()
-	map_card.custom_minimum_size = Vector2(0, 270)
-	map_card.add_theme_stylebox_override("panel", panel_style(Color("#1A100DDD"), C_SAND))
-	var row := HBoxContainer.new()
-	map_card.add_child(row)
-	var image := make_image(HERO_TEXTURE, 248, Color(0.82, 0.58, 0.38, 0.86))
-	image.custom_minimum_size = Vector2(250, 248)
-	row.add_child(image)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 6)
-	row.add_child(copy)
-	copy.add_child(
-		make_label("01  WEST MARKET     02  CENTRAL COURTYARD     03  EAST CITADEL", 8, C_GOLD)
-	)
-	copy.add_child(make_label("Sandstone / Разомкнутый центр", 22, C_TEXT))
-	copy.add_child(
+	var title := make_card("SANDSTONE // БРИФИНГ", "КАРТА ЧИТАЕТСЯ ПО СИЛУЭТУ", 0)
+	title[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title[1].add_child(
 		make_label(
 			(
-				"Песчаниковые стены дают тёплую силуэтную форму, бирюзовые ткани "
-				+ "и вода создают контрастные ориентиры. Арки разделяют зоны, "
-				+ "но оставляют читаемые прострелы."
+				"Арки открывают sightline, рынок сжимает дистанцию, "
+				+ "цитадель даёт высоту. Это собственный procedural blockout."
 			),
 			10,
 			C_MUTED
 		)
 	)
-	copy.add_child(make_label("РАЗМЕР 44 × 32 м     СТАРТ ЮГ     ОБЪЕКТИВЫ A / B", 9, C_TEAL))
-	copy.add_child(ui_button("ВЫЙТИ НА ПОЛЕ  →", Callable(launch_match), true))
-	page_host.add_child(map_card)
+	page_root.add_child(title[0])
 
-	var routes := HBoxContainer.new()
-	routes.add_theme_constant_override("separation", 10)
-	var west := make_card("МАРШРУТ A", "ЗАПАДНЫЙ РЫНОК", 190)
-	west[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	west[1].add_child(
-		make_label("Тесный ближний бой\nНавесы и низкие стены\nЦель A / боковой обход", 10, C_TEXT)
-	)
-	routes.add_child(west[0])
-	var center := make_card("МАРШРУТ B", "ЦЕНТРАЛЬНЫЙ ДВОР", 190)
-	center[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center[1].add_child(
-		make_label(
-			"Открытая площадь\nДлинная линия через арку\nВода как визуальный якорь", 10, C_TEXT
-		)
-	)
-	routes.add_child(center[0])
-	var east := make_card("МАРШРУТ C", "ВОСТОЧНАЯ ЦИТАДЕЛЬ", 190)
-	east[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	east[1].add_child(
-		make_label("Высота и ступени\nКрепость с балконом\nЦель B / дальний контроль", 10, C_TEXT)
-	)
-	routes.add_child(east[0])
-	page_host.add_child(routes)
-
-	var principles := make_card("LEVEL DESIGN NOTES", "Что взято из 30 референсов", 150)
-	principles[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	principles[1].add_child(
-		make_label(
-			(
-				"КОНТРАСТ: солнечная охра и глубокие тени переулков\n"
-				+ "СИЛУЭТ: арки, башни, навесы и песчаниковые фасады\n"
-				+ "ИГРА: три маршрута, короткие chokepoint'ы и читаемые высоты"
-			),
-			10,
-			C_MUTED
-		)
-	)
-	page_host.add_child(principles[0])
-
-
-func build_loadout() -> void:
-	page_heading(
-		"АРСЕНАЛ",
-		"30 ВИДОВ ОРУЖИЯ",
-		"20 огнестрельных платформ и 10 ножей уже заведены в игровой каталог и доступны через Q/E."
-	)
-	var banner := make_card("КОНТРОЛЬ СНАРЯЖЕНИЯ", "FEN-9 COBALT // СЛОТ 01", 170)
-	banner[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var banner_row := HBoxContainer.new()
-	banner[1].add_child(banner_row)
-	var banner_image := make_image(WEAPON_TEXTURE, 120, Color(0.66, 0.86, 0.82, 0.82))
-	banner_image.custom_minimum_size = Vector2(220, 120)
-	banner_row.add_child(banner_image)
-	var banner_copy := VBoxContainer.new()
-	banner_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	banner_copy.add_child(make_label("20 ОГНЕСТРЕЛЬНЫХ     10 НОЖЕЙ     30 СЛОТОВ", 10, C_TEAL))
+	var image_card := PanelContainer.new()
+	image_card.custom_minimum_size = Vector2(0, 280)
+	image_card.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0AE8"), C_SAND))
+	page_root.add_child(image_card)
+	var image_row := HBoxContainer.new()
+	image_card.add_child(image_row)
+	var map_image := make_image(MENU_TEXTURE, 250, Color(0.92, 0.72, 0.48, 0.78))
+	map_image.custom_minimum_size = Vector2(320, 250)
+	image_row.add_child(map_image)
+	var map_copy := VBoxContainer.new()
+	map_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_copy.add_theme_constant_override("separation", 7)
+	image_row.add_child(map_copy)
+	map_copy.add_child(make_label("SANDSTONE / 44 × 32 м", 19, C_TEXT))
+	map_copy.add_child(make_label("WEST MARKET\nCENTRAL COURTYARD\nEAST CITADEL", 12, C_GOLD))
 	(
-		banner_copy
+		map_copy
 		. add_child(
 			make_label(
-				"Q / E переключают каталог в матче. Клавиши 1–0 дают быстрый доступ к первым десяти слотам.",
+				"Тёплый sandstone, teal banners, вода как ориентир, две objective-зоны и три читаемых подхода.",
 				10,
 				C_MUTED
 			)
 		)
 	)
-	banner_copy.add_child(ui_button("ВОЙТИ В ТРЕНИРОВКУ  →", Callable(launch_match), true))
-	banner_row.add_child(banner_copy)
-	page_host.add_child(banner[0])
+	map_copy.add_child(ui_button("▶  ЗАПУСТИТЬ МАТЧ", Callable(launch_match), true))
+
+	var routes := HBoxContainer.new()
+	routes.add_theme_constant_override("separation", 10)
+	page_root.add_child(routes)
+	for route in [
+		["A", "WEST MARKET", "Короткий бой / навесы / цель A", C_TEAL],
+		["B", "CENTRAL COURTYARD", "Открытый центр / вода / арка", C_GOLD],
+		["C", "EAST CITADEL", "Ступени / балкон / цель B", C_RED]
+	]:
+		var card := make_card("МАРШРУТ " + route[0], route[1], 150)
+		card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card[1].add_child(make_label(route[2], 10, route[3]))
+		routes.add_child(card[0])
+
+
+func build_loadout() -> void:
+	var heading := make_card("ОБОРУДОВАНИЕ", "АРСЕНАЛ // 30 СЛОТОВ", 0)
+	heading[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	(
+		heading[1]
+		. add_child(
+			make_label(
+				"Каталог доступен в матче: Q/E пролистывают все 30 позиций, 1–0 открывают первые десять.",
+				10,
+				C_MUTED
+			)
+		)
+	)
+	page_root.add_child(heading[0])
 
 	var grid := GridContainer.new()
 	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_host.add_child(grid)
+	page_root.add_child(grid)
 	for weapon in Arsenal.WEAPONS:
 		var spec: Dictionary = weapon
 		grid.add_child(weapon_card(spec))
 
 
 func build_training() -> void:
-	page_heading(
-		"ПОДГОТОВКА",
-		"ПОЛЕВОЙ ТРЕНАЖЁР",
-		"Проверь поворот камеры, движение, raycast-стрельбу и весь каталог оружия."
-	)
-	var camera_card := make_card("FPS CAMERA", "ПОВОРОТ КАМЕРЫ 360°", 190)
-	camera_card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	camera_card[1].add_child(
+	var heading := make_card("ПОДГОТОВКА", "ПРОВЕРКА КАМЕРЫ И ОГНЯ", 0)
+	heading[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading[1].add_child(
 		make_label(
 			(
-				"МЫШЬ X  →  ПОВОРОТ ПО ГОРИЗОНТУ\n"
-				+ "МЫШЬ Y  →  НАКЛОН ГОЛОВЫ\nЛКМ  →  RAYCAST-ОГОНЬ\n"
-				+ "ESC  →  ВЕРНУТЬСЯ В ЦЕНТР"
+				"В матче мышь вращает камеру через _input. "
+				+ "ЛКМ запускает physics ray query по центру прицела."
 			),
 			10,
-			C_TEXT
+			C_MUTED
 		)
 	)
-	camera_card[1].add_child(ui_button("ЗАПУСТИТЬ ТРЕНИРОВКУ", Callable(launch_match), true))
-	page_host.add_child(camera_card[0])
-	var checks := HBoxContainer.new()
-	checks.add_theme_constant_override("separation", 10)
-	for check in [
-		["КОЛЛИЗИИ", "CharacterBody3D + укрытия", C_GREEN],
-		["АРСЕНАЛ", "30 data-driven слотов", C_TEAL],
-		["КАРТА", "Sandstone blockout", C_GOLD]
+	page_root.add_child(heading[0])
+	var controls := HBoxContainer.new()
+	controls.add_theme_constant_override("separation", 10)
+	page_root.add_child(controls)
+	for item in [
+		["W A S D", "движение", C_GREEN],
+		["МЫШЬ", "камера 360°", C_TEAL],
+		["ЛКМ", "raycast-огонь", C_GOLD],
+		["Q / E", "30 слотов", C_RED]
 	]:
-		var card := make_card("ГОТОВО", check[0], 125)
+		var card := make_card(item[0], item[1], 130)
 		card[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card[1].add_child(make_label(check[1], 9, check[2]))
-		checks.add_child(card[0])
-	page_host.add_child(checks)
+		card[1].add_child(make_label("ГОТОВО", 9, item[2]))
+		controls.add_child(card[0])
+	page_root.add_child(ui_button("▶  ЗАПУСТИТЬ ТРЕНИРОВКУ", Callable(launch_match), true))
 
 
 func build_profile() -> void:
-	page_heading("ОПЕРАТОР", "NIKO//ZERO", "Полевой профиль и текущая готовность к Sandstone.")
-	var profile := make_card("СТАТУС", "ОПЕРАТОР ГОТОВ", 180)
+	var profile := make_card("ОПЕРАТОР", "NIKO//ZERO", 220)
 	profile[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	profile[1].add_child(
+		make_label("В ПОЛЕ / ГОТОВ\nРАНГ  ВЕКТОР IV\nТОЧНОСТЬ  67%\nСЕРИЯ  04 ПОБЕД", 13, C_TEXT)
+	)
+	profile[1].add_child(ui_button("▶  ВОЙТИ В РАУНД", Callable(launch_match), true))
+	page_root.add_child(profile[0])
+
+
+func build_settings() -> void:
+	var settings := make_card("СИСТЕМА", "НАСТРОЙКИ ПОЛЯ", 230)
+	settings[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings[1].add_child(
 		make_label(
 			(
-				"РАНГ  ВЕКТОР IV     СЕРИЯ 04 ПОБЕД\n"
-				+ "ТОЧНОСТЬ  67%       ОБЪЕКТЫ  18\n"
-				+ "ПРОФИЛЬ  ОТКРЫТЫЙ ТЕСТЕР 0.9.5"
+				"W A S D     ДВИЖЕНИЕ\nМЫШЬ       ПОВОРОТ КАМЕРЫ\n"
+				+ "ЛКМ        ОГОНЬ\nQ / E      СМЕНА ОРУЖИЯ\n"
+				+ "1–0        БЫСТРЫЕ СЛОТЫ\nR          ПЕРЕЗАРЯДКА\n"
+				+ "ESC        ВЫХОД В МЕНЮ\n\nVIEWPORT   1440 × 900\n"
+				+ "MINIMUM    800 × 500"
 			),
 			11,
 			C_TEXT
 		)
 	)
-	profile[1].add_child(ui_button("ПОДГОТОВИТЬСЯ К РАУНДУ", Callable(launch_match), true))
-	page_host.add_child(profile[0])
-
-	var notes := make_card("ПРОТОКОЛ", "Последние изменения", 170)
-	notes[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	notes[1].add_child(
-		make_label(
-			(
-				"+ Sandstone: арки, рынки, цитадель, две зоны\n"
-				+ "+ Арсенал: 30 видов, включая 10 ножей\n"
-				+ "+ Камера: mouse look с ограничением вертикального угла\n"
-				+ "+ HUD: имя оружия, слот, патроны и цели"
-			),
-			10,
-			C_MUTED
-		)
-	)
-	page_host.add_child(notes[0])
+	page_root.add_child(settings[0])
 
 
-func build_settings() -> void:
-	page_heading(
-		"СИСТЕМА",
-		"НАСТРОЙКИ",
-		"Быстрые параметры прототипа. Базовый viewport 1440×900, минимум 800×500."
-	)
-	var controls := make_card("УПРАВЛЕНИЕ", "ПОЛЕВЫЕ КОМАНДЫ", 230)
-	controls[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls[1].add_child(
-		make_label(
-			(
-				"W A S D     ДВИЖЕНИЕ\nМЫШЬ       ПОВОРОТ КАМЕРЫ\n"
-				+ "ЛКМ        ОГОНЬ\nQ / E      СМЕНА ОРУЖИЯ\n"
-				+ "1–0        БЫСТРЫЕ СЛОТЫ\nR  ПЕРЕЗАРЯДКА\n"
-				+ "ESC        ВЫХОД В МЕНЮ"
-			),
-			10,
-			C_TEXT
-		)
-	)
-	controls[1].add_child(
-		ui_button(
-			"СБРОСИТЬ ПОДСКАЗКИ", Callable(func() -> void: notify("Подсказки восстановлены")), false
-		)
-	)
-	page_host.add_child(controls[0])
-
-	var runtime := make_card("RUNTIME", "GODOT 4.5+ NATIVE", 150)
-	runtime[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	runtime[1].add_child(
-		make_label(
-			(
-				"Единственный runtime: Godot\nСцена меню: Control\n"
-				+ "Сцена матча: Node3D\nRenderer: GL Compatibility"
-			),
-			10,
-			C_MUTED
-		)
-	)
-	page_host.add_child(runtime[0])
-
-
-func page_heading(kicker: String, title: String, description: String) -> void:
-	page_host.add_child(make_label(kicker, 8, C_GOLD))
-	page_host.add_child(make_label(title, 25, C_TEXT))
-	page_host.add_child(make_label(description, 10, C_MUTED))
-
-
-func make_card(kicker: String, title: String, min_height: float = 0.0) -> Array:
-	var panel := PanelContainer.new()
-	if min_height > 0.0:
-		panel.custom_minimum_size = Vector2(0, min_height)
-	panel.add_theme_stylebox_override("panel", panel_style(Color("#1B100CDD"), Color("#60412F")))
-	var margin := MarginContainer.new()
-	set_margins(margin, 14, 14, 12, 12)
-	panel.add_child(margin)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 7)
-	margin.add_child(box)
-	box.add_child(make_label(kicker, 8, C_GOLD))
-	box.add_child(make_label(title, 16, C_TEXT))
-	return [panel, box]
-
-
-func stat_card(kicker: String, value: String, caption: String, color: Color) -> PanelContainer:
+func info_card(
+	kicker: String, value: String, caption: String, color: Color, page: String
+) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 86)
+	card.custom_minimum_size = Vector2(0, 94)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", panel_style(Color("#20140E"), color))
+	card.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0DE8"), color))
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 2)
+	box.add_theme_constant_override("separation", 1)
 	card.add_child(box)
 	box.add_child(make_label(kicker, 8, C_DIM))
-	box.add_child(make_label(value, 21, color))
+	box.add_child(make_label(value, 24, color))
 	box.add_child(make_label(caption, 8, C_MUTED))
+	card.gui_input.connect(
+		func(event: InputEvent) -> void:
+			if event is InputEventMouseButton and event.pressed:
+				show_page(page)
+	)
 	return card
 
 
 func weapon_card(spec: Dictionary) -> PanelContainer:
 	var accent: Color = spec["color"] as Color
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 156)
-	card.add_theme_stylebox_override("panel", panel_style(Color("#1A100D"), accent))
+	card.custom_minimum_size = Vector2(0, 152)
+	card.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0C"), accent))
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 5)
+	box.add_theme_constant_override("separation", 4)
 	card.add_child(box)
-	var category: String = str(spec["category"])
-	var name: String = str(spec["name"])
-	box.add_child(
-		make_label(
-			category + "     " + ("НОЖ" if bool(spec["is_knife"]) else "ОГНЕСТРЕЛ"), 8, accent
-		)
-	)
-	box.add_child(make_label(name, 13, C_TEXT))
-	var silhouette := make_label("◈" if bool(spec["is_knife"]) else "▰", 28, accent)
-	silhouette.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(silhouette)
+	box.add_child(make_label(str(spec["category"]), 8, accent))
+	box.add_child(make_label(str(spec["name"]), 13, C_TEXT))
+	var icon := make_label("◈" if bool(spec["is_knife"]) else "▰", 27, accent)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(icon)
 	if bool(spec["is_knife"]):
-		box.add_child(make_label("БЛИЖНИЙ БОЙ     УРОН 100", 8, C_MUTED))
+		box.add_child(make_label("НОЖ  ·  БЛИЖНИЙ БОЙ", 8, C_MUTED))
 	else:
 		box.add_child(
 			make_label(
 				(
-					"УРОН %02d     МАГАЗИН %02d     CD %.2f"
+					"УРОН %02d  ·  МАГАЗИН %02d  ·  CD %.2f"
 					% [int(spec["damage"]), int(spec["magazine"]), float(spec["cooldown"])]
 				),
 				8,
@@ -697,6 +472,22 @@ func weapon_card(spec: Dictionary) -> PanelContainer:
 			)
 		)
 	return card
+
+
+func make_card(kicker: String, title: String, min_height: float) -> Array:
+	var panel := PanelContainer.new()
+	if min_height > 0.0:
+		panel.custom_minimum_size = Vector2(0, min_height)
+	panel.add_theme_stylebox_override("panel", panel_style(Color("#1A0F0CE8"), Color("#65452F")))
+	var margin := MarginContainer.new()
+	set_margins(margin, 14, 14, 12, 12)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 7)
+	margin.add_child(box)
+	box.add_child(make_label(kicker, 8, C_GOLD))
+	box.add_child(make_label(title, 17, C_TEXT))
+	return [panel, box]
 
 
 func make_image(texture: Texture2D, min_height: int, tint: Color) -> TextureRect:
@@ -748,12 +539,12 @@ func make_label(text: String, font_size: int, color: Color) -> Label:
 func ui_button(text: String, callback: Callable, accent: bool) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 34)
+	button.custom_minimum_size = Vector2(0, 36)
 	button.add_theme_font_size_override("font_size", 9)
 	button.add_theme_color_override("font_color", Color("#2A1A11") if accent else C_MUTED)
 	button.add_theme_color_override("font_hover_color", Color("#2A1A11") if accent else C_TEXT)
-	var normal_fill := C_GOLD if accent else Color("#2A1A11")
-	var hover_fill := Color("#FFD49B") if accent else Color("#483022")
+	var normal_fill := C_GOLD if accent else Color("#24150E")
+	var hover_fill := Color("#FFD59B") if accent else Color("#4A2F1F")
 	button.add_theme_stylebox_override(
 		"normal", panel_style(normal_fill, C_GOLD if accent else C_SAND)
 	)
